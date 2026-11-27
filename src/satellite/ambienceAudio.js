@@ -148,6 +148,46 @@ export function createAmbienceAudio() {
     osc2.stop(now + 2.2);
   }
 
+  // Soft distant firework crackle/pop for Malam Kembang Api Ampera
+  function playFireworkPop() {
+    if (!enabled || !ctx || ctx.state !== 'running') return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(160 + Math.random() * 60, now);
+    osc.frequency.exponentialRampToValueAtTime(38, now + 0.28);
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, now);
+    env.gain.exponentialRampToValueAtTime(0.09, now + 0.018);
+    env.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+
+    osc.connect(env);
+    env.connect(masterGain);
+    osc.start(now);
+    osc.stop(now + 0.36);
+  }
+
+  // Bright golden harmonic chime when collecting a Sriwijaya relic
+  function playCollectChime() {
+    if (!enabled || !ctx || ctx.state !== 'running') return;
+    const now = ctx.currentTime;
+    for (const [idx, freq] of [523.25, 659.25, 783.99, 1046.5].entries()) {
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      const t0 = now + idx * 0.065;
+      osc.frequency.setValueAtTime(freq, t0);
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0.0001, t0);
+      env.gain.exponentialRampToValueAtTime(0.08, t0 + 0.02);
+      env.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.38);
+      osc.connect(env);
+      env.connect(masterGain);
+      osc.start(t0);
+      osc.stop(t0 + 0.4);
+    }
+  }
+
   function scheduleNextHorn() {
     clearTimeout(hornTimer);
     if (!enabled) return;
@@ -230,6 +270,8 @@ export function createAmbienceAudio() {
     setMood,
     setRainIntensity,
     playBoatHorn,
+    playFireworkPop,
+    playCollectChime,
     cleanup,
   };
 }

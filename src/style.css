@@ -1151,6 +1151,210 @@ button:focus-visible {
   font-weight: 600;
 }
 
+/* --- v2.0 Additions: 4-Tab Drawer, 24h Clock, Route Planner, Photo Mode & Mini-Map Radar --- */
+.drawer-tabs-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.drawer-tabs-4 .drawer-tab {
+  font-size: 0.7rem;
+  padding: 6px 3px;
+}
+
+.layer-toggle-row-4 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.lang-btn {
+  min-width: 38px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.info-card.collapsed .info-gmaps-link {
+  display: none;
+}
+
+.info-gmaps-link {
+  display: inline-block;
+  margin-top: 9px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 0.73rem;
+  font-weight: 650;
+  color: var(--accent-gold);
+  background: rgba(216, 173, 92, 0.14);
+  border: 1px solid rgba(216, 173, 92, 0.36);
+  text-decoration: none;
+}
+
+.info-gmaps-link:hover {
+  background: rgba(216, 173, 92, 0.28);
+  color: #fff;
+}
+
+.info-gmaps-link.hidden {
+  display: none;
+}
+
+.route-card {
+  margin-top: 9px;
+}
+
+.route-heading {
+  margin-top: 0 !important;
+}
+
+.route-selects {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+
+.route-select {
+  width: 100%;
+  padding: 5px 6px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(16, 24, 30, 0.92);
+  color: var(--ink-primary);
+  font-family: inherit;
+  font-size: 0.7rem;
+}
+
+.route-btns {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.route-go-btn {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 0.72rem;
+}
+
+.route-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 0.67rem;
+}
+
+.gmaps-link {
+  color: #7dd3fc;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.gmaps-link:hover {
+  text-decoration: underline;
+}
+
+.clock-play-btn {
+  padding: 4px 9px;
+  font-size: 0.7rem;
+}
+
+.clock-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.63rem;
+  color: var(--ink-muted);
+}
+
+/* Photo Mode (hides HUD clutter cleanly, leaves only bottom shutter bar) */
+.photo-bar {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--hud-glass-strong);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--hud-border);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+  z-index: 25;
+}
+
+.photo-bar.hidden {
+  display: none;
+}
+
+.photo-shutter-btn {
+  background: var(--accent-gold);
+  color: #14212a;
+  font-weight: 700;
+}
+
+.photo-shutter-btn:hover {
+  background: #ecc472;
+}
+
+[data-photo-mode="true"] .hud-top,
+[data-photo-mode="true"] .explore-drawer,
+[data-photo-mode="true"] .explore-drawer.open,
+[data-photo-mode="true"] .info-card,
+[data-photo-mode="true"] .preset-dock,
+[data-photo-mode="true"] .controls-hint,
+[data-photo-mode="true"] .mode-banner,
+[data-photo-mode="true"] .radar-widget,
+[data-photo-mode="true"] .scene-pin,
+[data-photo-mode="true"] .maplibregl-ctrl-bottom-right {
+  display: none !important;
+}
+
+/* 2D Mini-Map Radar */
+.radar-widget {
+  position: absolute;
+  right: 16px;
+  bottom: 92px;
+  width: 148px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(12, 20, 26, 0.84);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--hud-border);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.38);
+  pointer-events: auto;
+  z-index: 12;
+}
+
+.radar-widget.hidden {
+  display: none;
+}
+
+.radar-canvas {
+  display: block;
+  width: 148px;
+  height: 112px;
+  cursor: crosshair;
+}
+
+.radar-label {
+  display: block;
+  text-align: center;
+  padding: 3px 6px;
+  font-size: 0.61rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent-gold);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 720px) {
+  .radar-widget {
+    display: none;
+  }
+}
+
 .webgl-fallback {
   max-width: 540px;
   margin: 12vh auto 0;

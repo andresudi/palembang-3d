@@ -42,6 +42,14 @@ Switch seamlessly with one click in the top bar between:
 | :---: | :---: |
 | ![Ride-Along Perahu Ketek Musi River](docs/screenshots/sat-ride-boat.png) | ![Smart City Weather Rain Tide & GIS Measure](docs/screenshots/sat-gis-rain-tide.png) |
 
+| Playable Perahu Ketek & Srivijaya Relics Quest | Night Fireworks over Ampera & Kemaro Lanterns |
+| :---: | :---: |
+| ![Playable Perahu Ketek Mini-Game](docs/screenshots/v2-playable-boat.png) | ![Ampera 3D Fireworks Festival](docs/screenshots/v2-festival-fireworks.png) |
+
+| Real Road Route Planner (OSRM) & English Mode | Gedung Ledeng, Rumah Limas & 2D Mini-Map Radar |
+| :---: | :---: |
+| ![Real Road Route Planner & Bilingual EN](docs/screenshots/v2-route-en.png) | ![Gedung Ledeng, Rumah Limas & 2D Radar](docs/screenshots/v2-bkb-limas-radar.png) |
+
 ---
 
 ## Mode 2: Offline Stylized PBR Diorama (Three.js + UnrealBloom)
@@ -67,8 +75,14 @@ Switch seamlessly with one click in the top bar between:
   - **OpenFreeMap / OpenStreetMap** real-time vector tiles & 3D building extrusions (`Gedung 3D` toggle)
   - **AWS Terrarium** 3D elevation terrain + atmospheric sky & horizon fog
   - **Custom MapLibre v6 Three.js 3D WebGL Layers**:
-    - True-scale **Ampera Bridge** (`66m` twin towers with pulsing beacons & ramps), **Musi IV Cable-Stayed Bridge** (`58m` pylons & ramps), **Masjid Agung SMB I** (3-tiered emerald *tumpang* roof + `46m` minaret), **Monpera** (5-petal Melati monument), **Benteng Kuto Besak** (fortress wall, twin bastions & *Lawang Kuto* gate), **Kemaro Island 9-Story Pagoda** (`45m`), **elevated South Sumatra LRT concrete viaduct**, and **Gelora Sriwijaya Jakabaring 4 stadium floodlight towers** at exact WGS84 coordinates & compass bearings.
-  - **Shareable Camera Deep-Links & Public Hosting**: Click **`Bagikan`** in the top bar to copy a URL preserving exact `lng`, `lat`, `zoom`, `pitch`, `bearing`, `lighting`, and `weather` state; automatically built & deployed via `.github/workflows/deploy-pages.yml` to https://andresudi.github.io/palembang-3d/.
+    - **9 True-Scale Hero Overlays**: **Ampera Bridge** (`66m` twin towers with pulsing beacons & ramps), **Musi IV Cable-Stayed Bridge** (`58m` pylons & ramps), **Masjid Agung SMB I** (3-tiered emerald *tumpang* roof + `46m` minaret), **Monpera** (5-petal Melati monument), **Benteng Kuto Besak** (fortress wall, twin bastions & *Lawang Kuto* gate), **Gedung Ledeng (Palembang City Hall 1928 Water Tower)**, **Rumah Limas Traditional Pavilion**, **Kemaro Island 9-Story Pagoda** (`45m`), **elevated South Sumatra LRT viaduct**, and **Gelora Sriwijaya Jakabaring 4 stadium floodlight towers**.
+  - **v2.0 Festivals, 24-Hour Time-Lapse & Photo Mode**:
+    - Continuous `00:00–23:59` time-of-day slider + auto-play 24h time-lapse, **Traditional Bidar Boat Race** (6 long racing canoes along BKB–Ampera), **Ampera 3D Fireworks & 48 Kemaro Sky Lanterns** (auto-night + procedural firework pops), and **Photo Mode** (zero-HUD view + 1-click PNG postcard export with optional watermark).
+  - **Playable Perahu Ketek Mini-Game & Srivijaya Relic Quest**:
+    - Steer your own Songket red-and-gold *Perahu Ketek* (`WASD` / Arrows / touch controls) safely inside the Musi River channel and collect **5 rotating golden Srivijaya relics** with live distance compass, radar dots, and completion timer.
+  - **Real Road Route Planner, Google Maps, Bilingual (`ID / EN`), 2D Radar & PWA**:
+    - Real driving routes via public **OSRM** with automatic local **A\* fallback** on the baked 413 km Palembang OSM road graph, direct **Open in Google Maps** links on every POI & route, full **Indonesian ↔ English** switcher, clickable **2D Mini-Map Radar**, and **PWA** support (`manifest.webmanifest` + `sw.js`).
+  - **Shareable Camera Deep-Links & Public Hosting**: Click **`Bagikan` / `Share`** in the top bar to copy a URL preserving exact `lng`, `lat`, `zoom`, `pitch`, `bearing`, `lighting`, `lang`, and `weather` state; automatically built & deployed via `.github/workflows/deploy-pages.yml` to https://andresudi.github.io/palembang-3d/.
     - **1:1 Diorama-Parity Live Animations (`Animasi` toggle)**: `420` viewport-aware instanced road vehicles following real OpenStreetMap Palembang streets & bridge decks (Indonesian left-hand drive, dusk/night headlights & taillights, dynamically streaming into whichever district you zoom into), `8` articulated 3-car South Sumatra LRT trains, `42` *perahu ketek* & speedboats with soft aerial V-wakes (including Pulau Kemaro channels), `6` coal barge + tugboat convoys, animated **Bundaran Air Mancur** water fountain, and waving **Merah-Putih** flag at **Benteng Kuto Besak**.
 - **Offline Stylized PBR Diorama Mode**:
   - 100% procedural canvas PBR textures (grained asphalt, stone plaza paving, terracotta roof tiles, weathered colonial plaster, mowed stadium turf, multi-story shophouse facades with glowing night windows), dynamic `PMREMGenerator` sky IBL, drifting clouds & night starfield, animated river/road/LRT traffic, and mood-tuned `UnrealBloomPass`.

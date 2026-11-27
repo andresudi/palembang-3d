@@ -1,0 +1,19 @@
+{
+  "name": "Explore Palembang 3D",
+  "short_name": "Palembang 3D",
+  "description": "Interactive 1:1 Real Satellite 3D & Offline PBR Diorama explorer of Palembang City, South Sumatra.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#14212a",
+  "theme_color": "#c83d32",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

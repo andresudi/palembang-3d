@@ -298,5 +298,12 @@ function switchMode(mode) {
   }
 }
 
+// Register lightweight PWA Service Worker in production builds
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
 const initialParam = new URLSearchParams(window.location.search).get('mode');
 switchMode(initialParam === 'diorama' ? 'diorama' : 'satellite');

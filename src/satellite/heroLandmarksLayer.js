@@ -477,6 +477,103 @@ function buildRealKutoBesakWallModel(mats) {
   return g;
 }
 
+// True-scale Kantor Walikota Palembang (Gedung Ledeng — 1928 Dutch-colonial Water Tower, ~36m)
+function buildRealGedungLedengModel(mats) {
+  const g = new THREE.Group();
+
+  // Symmetric colonial main office wings
+  const wing = new THREE.Mesh(new THREE.BoxGeometry(44, 11.5, 18), mats.creamWall);
+  wing.position.y = 5.75;
+  g.add(wing);
+
+  const wingRoof = new THREE.Mesh(new THREE.BoxGeometry(45.5, 2.2, 19.5), mats.terracotta);
+  wingRoof.position.y = 12.6;
+  g.add(wingRoof);
+
+  // Glowing heritage arcade windows along main facade
+  const wingWin = new THREE.Mesh(new THREE.BoxGeometry(38, 3.2, 18.6), mats.warmGlow);
+  wingWin.position.y = 6.2;
+  g.add(wingWin);
+
+  // Iconic central 36m square-stepped Water Tower (Menara Air / Gedung Ledeng)
+  const tBase = new THREE.Mesh(new THREE.BoxGeometry(15, 18, 15), mats.whiteConcrete);
+  tBase.position.y = 14;
+  g.add(tBase);
+
+  const tUpper = new THREE.Mesh(new THREE.BoxGeometry(12.2, 11.5, 12.2), mats.creamWall);
+  tUpper.position.y = 26.5;
+  g.add(tUpper);
+
+  const tGallery = new THREE.Mesh(new THREE.BoxGeometry(14.5, 1.1, 14.5), mats.gold);
+  tGallery.position.y = 23.2;
+  g.add(tGallery);
+
+  const tClockBand = new THREE.Mesh(new THREE.BoxGeometry(12.7, 3.0, 12.7), mats.warmGlow);
+  tClockBand.position.y = 28.0;
+  g.add(tClockBand);
+
+  const tRoof = new THREE.Mesh(new THREE.ConeGeometry(10.2, 6.2, 4), mats.terracotta);
+  tRoof.rotation.y = Math.PI / 4;
+  tRoof.position.y = 35.3;
+  g.add(tRoof);
+
+  const tSpire = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.35, 4.5, 8), mats.gold);
+  tSpire.position.y = 40.0;
+  g.add(tSpire);
+
+  return g;
+}
+
+// True-scale Rumah Limas Palembang Traditional Heritage Pavilion (Museum SMB II / Taman BKB)
+function buildRealRumahLimasModel(mats) {
+  const g = new THREE.Group();
+
+  // Traditional elevated stilt pillars (rumah panggung)
+  for (const px of [-9, -3, 3, 9]) {
+    for (const pz of [-5.5, 0, 5.5]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 3.8, 6), mats.darkWood);
+      post.position.set(px, 1.9, pz);
+      g.add(post);
+    }
+  }
+
+  // Raised kekijing timber platform & carved crimson-gold walls
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(22, 0.9, 14), mats.darkWood);
+  floor.position.y = 4.1;
+  g.add(floor);
+
+  const walls = new THREE.Mesh(new THREE.BoxGeometry(19.5, 4.8, 11.8), mats.crimson);
+  walls.position.y = 6.95;
+  g.add(walls);
+
+  const goldCarving = new THREE.Mesh(new THREE.BoxGeometry(20.1, 0.65, 12.4), mats.gold);
+  goldCarving.position.y = 9.2;
+  g.add(goldCarving);
+
+  const windows = new THREE.Mesh(new THREE.BoxGeometry(14, 2.0, 12.2), mats.warmGlow);
+  windows.position.y = 7.0;
+  g.add(windows);
+
+  // Iconic steep Palembang Limas roof + golden simbar crest finials
+  const lowerRoof = new THREE.Mesh(new THREE.ConeGeometry(17.5, 5.4, 4), mats.terracotta);
+  lowerRoof.rotation.y = Math.PI / 4;
+  lowerRoof.scale.set(1.18, 1, 0.8);
+  lowerRoof.position.y = 12.0;
+  g.add(lowerRoof);
+
+  const ridge = new THREE.Mesh(new THREE.BoxGeometry(10.5, 0.9, 1.1), mats.gold);
+  ridge.position.y = 14.9;
+  g.add(ridge);
+
+  for (const sx of [-5.2, 0, 5.2]) {
+    const simbar = new THREE.Mesh(new THREE.ConeGeometry(0.65, 2.4, 4), mats.gold);
+    simbar.position.set(sx, 16.3, 0);
+    g.add(simbar);
+  }
+
+  return g;
+}
+
 export function createHeroLandmarksCustomLayer() {
   const mats = {
     steelRed: new THREE.MeshStandardMaterial({ color: '#bd3228', roughness: 0.46, metalness: 0.32 }),
@@ -488,6 +585,7 @@ export function createHeroLandmarksCustomLayer() {
     creamWall: new THREE.MeshStandardMaterial({ color: '#ede4d3', roughness: 0.74 }),
     mosqueGreen: new THREE.MeshStandardMaterial({ color: '#1b6b4b', roughness: 0.45, metalness: 0.15 }),
     terracotta: new THREE.MeshStandardMaterial({ color: '#a8442a', roughness: 0.62 }),
+    darkWood: new THREE.MeshStandardMaterial({ color: '#4a2c1d', roughness: 0.78 }),
     cable: new THREE.MeshStandardMaterial({ color: '#bfc8d2', roughness: 0.3, metalness: 0.7 }),
     gold: new THREE.MeshStandardMaterial({ color: '#e0ad2e', roughness: 0.32, metalness: 0.58 }),
     warmGlow: new THREE.MeshStandardMaterial({
@@ -550,6 +648,20 @@ export function createHeroLandmarksCustomLayer() {
       altitude: 0,
       bearingDeg: 164,
       model: buildRealKutoBesakWallModel(mats),
+    },
+    {
+      name: 'GedungLedeng',
+      lngLat: [104.75667, -2.99104],
+      altitude: 0,
+      bearingDeg: 12,
+      model: buildRealGedungLedengModel(mats),
+    },
+    {
+      name: 'RumahLimas',
+      lngLat: [104.75912, -2.99122],
+      altitude: 0,
+      bearingDeg: 164,
+      model: buildRealRumahLimasModel(mats),
     },
   ];
 

@@ -1,14 +1,18 @@
-// Collapsible left Exploration Drawer + Active Experience Banner for Real Satellite 3D
+// Collapsible left Exploration Drawer + Active Mode Banners + Photo Mode Shutter Bar (v2.0)
 import { PALEMBANG_POIS, POI_CATEGORIES } from './palembangPois.js';
 
 const CAT_BADGE = {
-  landmark: { icon: '🏛️', label: 'Landmark' },
-  kuliner: { icon: '🍜', label: 'Kuliner' },
-  lrt: { icon: '🚆', label: 'LRT' },
+  landmark: { icon: '🏛️', id: 'Landmark', en: 'Landmark' },
+  kuliner: { icon: '🍜', id: 'Kuliner', en: 'Culinary' },
+  lrt: { icon: '🚆', id: 'LRT', en: 'LRT' },
 };
 
 export function createExploreDrawer({
+  i18n,
   cameraModes,
+  playableBoat,
+  festival3d,
+  routePlanner,
   passport,
   ambience,
   weatherGis,
@@ -18,13 +22,22 @@ export function createExploreDrawer({
   onToggleBuildings,
   onToggleTraffic,
   onToggleLabels,
-  onSelectLighting,
+  onToggleRadar,
+  onSetHour,
+  onToggleTimelapse,
+  onSetFestival,
+  onEnterPhotoMode,
+  onExitPhotoMode,
+  onDownloadPostcard,
   onDrawerToggle,
 }) {
   let isOpen = false;
-  let activeTab = 'ride'; // 'ride' | 'explore' | 'gis'
+  let activeTab = 'ride'; // 'ride' | 'explore' | 'gis' | 'festival'
   let activeCategory = 'all';
   let searchQuery = '';
+  let photoWatermark = true;
+
+  const t = (k) => i18n.t(k);
 
   // --- Drawer Shell ---
   const drawer = document.createElement('aside');
@@ -34,52 +47,51 @@ export function createExploreDrawer({
 
   const head = document.createElement('div');
   head.className = 'drawer-head';
-  head.innerHTML = `<span class="drawer-title">Eksplorasi Palembang</span>`;
+  const drawerTitleEl = document.createElement('span');
+  drawerTitleEl.className = 'drawer-title';
   const closeBtn = document.createElement('button');
   closeBtn.type = 'button';
   closeBtn.className = 'drawer-close';
-  closeBtn.textContent = 'Tutup';
   closeBtn.addEventListener('click', () => setOpen(false));
-  head.appendChild(closeBtn);
+  head.append(drawerTitleEl, closeBtn);
 
   const tabBar = document.createElement('div');
-  tabBar.className = 'drawer-tabs';
+  tabBar.className = 'drawer-tabs drawer-tabs-4';
   tabBar.setAttribute('role', 'tablist');
 
   const tabDefs = [
-    { id: 'ride', label: 'Naik & Tur' },
-    { id: 'explore', label: 'Jelajah' },
-    { id: 'gis', label: 'Cuaca & GIS' },
+    { id: 'ride', key: 'tabRide' },
+    { id: 'explore', key: 'tabExplore' },
+    { id: 'gis', key: 'tabGis' },
+    { id: 'festival', key: 'tabFestival' },
   ];
   const tabBtns = new Map();
   const tabPanels = new Map();
 
-  for (const t of tabDefs) {
+  for (const def of tabDefs) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'drawer-tab';
     btn.role = 'tab';
-    btn.textContent = t.label;
-    btn.dataset.drawerTab = t.id;
-    btn.addEventListener('click', () => setTab(t.id));
+    btn.dataset.drawerTab = def.id;
+    btn.addEventListener('click', () => setTab(def.id));
     tabBar.appendChild(btn);
-    tabBtns.set(t.id, btn);
+    tabBtns.set(def.id, { btn, key: def.key });
   }
 
   const body = document.createElement('div');
   body.className = 'drawer-body';
 
-  // === TAB 1: Naik & Tur ===
+  // === TAB 1: Naik & Tur (+ Playable Boat Mini-Game + 4 Layer Toggles) ===
   const ridePanel = document.createElement('div');
   ridePanel.className = 'drawer-panel';
 
   const rideSectionTitle = document.createElement('p');
   rideSectionTitle.className = 'drawer-section-label';
-  rideSectionTitle.textContent = 'Mode Naik (Ride-Along 1-Klik)';
   ridePanel.appendChild(rideSectionTitle);
 
   const modeActionBtns = new Map();
-  function makeActionCard({ modeId, icon, title, desc, onClick }) {
+  function makeActionCard({ modeId, icon, titleKey, descKey, onClick }) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'action-card';
@@ -87,13 +99,13 @@ export function createExploreDrawer({
     btn.innerHTML = `
       <span class="action-icon" aria-hidden="true">${icon}</span>
       <span class="action-copy">
-        <strong>${title}</strong>
-        <small>${desc}</small>
+        <strong data-i18n-title></strong>
+        <small data-i18n-desc></small>
       </span>
-      <span class="action-pill">Mulai</span>
+      <span class="action-pill" data-action-pill></span>
     `;
     btn.addEventListener('click', onClick);
-    modeActionBtns.set(modeId, btn);
+    modeActionBtns.set(modeId, { btn, titleKey, descKey });
     return btn;
   }
 
@@ -101,11 +113,26 @@ export function createExploreDrawer({
   rideStack.className = 'action-stack';
   rideStack.append(
     makeActionCard({
+      modeId: 'play-boat',
+      icon: '⛵',
+      titleKey: 'playBoat',
+      descKey: 'playBoatDesc',
+      onClick: () => {
+        if (playableBoat.getState().active) {
+          playableBoat.stop();
+        } else {
+          cameraModes.stopAll();
+          playableBoat.start();
+        }
+      },
+    }),
+    makeActionCard({
       modeId: 'ride-lrt',
       icon: '🚆',
-      title: 'Naik LRT Sumsel',
-      desc: 'Ikuti kereta 3-gerbong di viaduk layang (~65 km/j)',
+      titleKey: 'rideLrt',
+      descKey: 'rideLrtDesc',
       onClick: () => {
+        playableBoat.stop();
         if (cameraModes.getState().mode === 'ride-lrt') cameraModes.stopAll();
         else cameraModes.startRide('lrt');
       },
@@ -113,9 +140,10 @@ export function createExploreDrawer({
     makeActionCard({
       modeId: 'ride-boat',
       icon: '🚤',
-      title: 'Naik Perahu Ketek',
-      desc: 'Susuri Sungai Musi melintasi Ampera & BKB',
+      titleKey: 'rideBoat',
+      descKey: 'rideBoatDesc',
       onClick: () => {
+        playableBoat.stop();
         if (cameraModes.getState().mode === 'ride-boat') cameraModes.stopAll();
         else {
           cameraModes.startRide('boat');
@@ -126,9 +154,10 @@ export function createExploreDrawer({
     makeActionCard({
       modeId: 'ride-barge',
       icon: '🚢',
-      title: 'Ikut Tongkang Batu Bara',
-      desc: 'Konvoi kapal tunda & tongkang di alur utama Musi',
+      titleKey: 'rideBarge',
+      descKey: 'rideBargeDesc',
       onClick: () => {
+        playableBoat.stop();
         if (cameraModes.getState().mode === 'ride-barge') cameraModes.stopAll();
         else {
           cameraModes.startRide('barge');
@@ -141,7 +170,6 @@ export function createExploreDrawer({
 
   const tourSectionTitle = document.createElement('p');
   tourSectionTitle.className = 'drawer-section-label';
-  tourSectionTitle.textContent = 'Tur Otomatis & Drone Bebas';
   ridePanel.appendChild(tourSectionTitle);
 
   const tourStack = document.createElement('div');
@@ -150,9 +178,10 @@ export function createExploreDrawer({
     makeActionCard({
       modeId: 'tour',
       icon: '🎬',
-      title: 'Tur Sinematik Palembang',
-      desc: 'Terbang otomatis keliling 10 landmark + narasi',
+      titleKey: 'tourTitle',
+      descKey: 'tourDesc',
       onClick: () => {
+        playableBoat.stop();
         if (cameraModes.getState().mode === 'tour') cameraModes.stopAll();
         else cameraModes.startTour(1);
       },
@@ -160,9 +189,10 @@ export function createExploreDrawer({
     makeActionCard({
       modeId: 'drone',
       icon: '🛸',
-      title: 'Free Drone (WASD / Panah)',
-      desc: 'Terbang bebas · Q/E atur tinggi · Shift cepat',
+      titleKey: 'droneTitle',
+      descKey: 'droneDesc',
       onClick: () => {
+        playableBoat.stop();
         if (cameraModes.getState().mode === 'drone') cameraModes.stopAll();
         else cameraModes.startDrone();
       },
@@ -172,72 +202,71 @@ export function createExploreDrawer({
 
   const layerTitle = document.createElement('p');
   layerTitle.className = 'drawer-section-label';
-  layerTitle.textContent = 'Lapisan Visual 3D';
   ridePanel.appendChild(layerTitle);
 
   const layerRow = document.createElement('div');
-  layerRow.className = 'layer-toggle-row';
+  layerRow.className = 'layer-toggle-row layer-toggle-row-4';
 
   const bldgToggle = document.createElement('button');
   bldgToggle.type = 'button';
   bldgToggle.className = 'toggle-btn active';
-  bldgToggle.textContent = 'Gedung 3D';
   bldgToggle.dataset.buildingsBtn = 'true';
-  bldgToggle.setAttribute('aria-pressed', 'true');
   bldgToggle.addEventListener('click', () => {
     const next = onToggleBuildings();
     bldgToggle.classList.toggle('active', next);
-    bldgToggle.setAttribute('aria-pressed', String(next));
   });
 
   const animToggle = document.createElement('button');
   animToggle.type = 'button';
   animToggle.className = 'toggle-btn active';
-  animToggle.textContent = 'Animasi';
   animToggle.dataset.trafficBtn = 'true';
-  animToggle.setAttribute('aria-pressed', 'true');
   animToggle.addEventListener('click', () => {
     const next = onToggleTraffic();
     animToggle.classList.toggle('active', next);
-    animToggle.setAttribute('aria-pressed', String(next));
   });
 
   const labelToggle = document.createElement('button');
   labelToggle.type = 'button';
   labelToggle.className = 'toggle-btn active';
-  labelToggle.textContent = 'Label 3D';
   labelToggle.dataset.labelsBtn = 'true';
-  labelToggle.setAttribute('aria-pressed', 'true');
   labelToggle.addEventListener('click', () => {
     const next = onToggleLabels();
     labelToggle.classList.toggle('active', next);
-    labelToggle.setAttribute('aria-pressed', String(next));
   });
 
-  layerRow.append(bldgToggle, animToggle, labelToggle);
+  const radarToggle = document.createElement('button');
+  radarToggle.type = 'button';
+  radarToggle.className = 'toggle-btn active';
+  radarToggle.dataset.radarBtn = 'true';
+  radarToggle.addEventListener('click', () => {
+    const next = onToggleRadar();
+    radarToggle.classList.toggle('active', next);
+  });
+
+  layerRow.append(bldgToggle, animToggle, labelToggle, radarToggle);
   ridePanel.appendChild(layerRow);
   tabPanels.set('ride', ridePanel);
 
-  // === TAB 2: Jelajah (Phase 2: Passport X/20 + Category Filter + Search + Culinary/LRT POIs + Audio) ===
+  // === TAB 2: Jelajah (Passport + Category Filter + Search + POI List + Route Planner + Audio) ===
   const explorePanel = document.createElement('div');
   explorePanel.className = 'drawer-panel';
 
-  // Passport Penjelajah Card
   const passportCard = document.createElement('div');
   passportCard.className = 'passport-card';
   passportCard.innerHTML = `
     <div class="passport-top">
       <div>
-        <span class="passport-eyebrow">Passport Penjelajah</span>
+        <span class="passport-eyebrow" data-passport-eyebrow>Passport Penjelajah</span>
         <strong class="passport-rank" data-passport-rank>Wisatawan Baru</strong>
       </div>
       <div class="passport-right">
         <span class="passport-count" data-passport-count>0/20</span>
-        <button type="button" class="passport-reset" data-passport-reset title="Ulangi progress">Reset</button>
+        <button type="button" class="passport-reset" data-passport-reset>Reset</button>
       </div>
     </div>
     <div class="passport-bar"><div class="passport-fill" data-passport-fill style="width: 0%"></div></div>
   `;
+  const passportEyebrowEl = passportCard.querySelector('[data-passport-eyebrow]');
   const passportRankEl = passportCard.querySelector('[data-passport-rank]');
   const passportCountEl = passportCard.querySelector('[data-passport-count]');
   const passportFillEl = passportCard.querySelector('[data-passport-fill]');
@@ -246,40 +275,34 @@ export function createExploreDrawer({
     syncPassport();
   });
 
-  // Category Filter Pills
   const catRow = document.createElement('div');
   catRow.className = 'cat-filter-row';
   const catBtns = new Map();
   for (const cat of POI_CATEGORIES) {
-    const count = cat.id === 'all' ? PALEMBANG_POIS.length : PALEMBANG_POIS.filter((p) => p.category === cat.id).length;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'cat-pill';
     btn.dataset.catFilter = cat.id;
-    btn.textContent = `${cat.label} (${count})`;
-    btn.addEventListener('click', () => {
-      setCategory(cat.id);
-    });
+    btn.addEventListener('click', () => setCategory(cat.id));
     catRow.appendChild(btn);
     catBtns.set(cat.id, btn);
   }
 
-  // Search Box
   const searchInput = document.createElement('input');
   searchInput.type = 'search';
   searchInput.className = 'drawer-search';
-  searchInput.placeholder = 'Cari pempek, pindang, stasiun, landmark...';
-  searchInput.setAttribute('aria-label', 'Cari lokasi dan kuliner Palembang');
   searchInput.dataset.poiSearch = 'true';
 
   const poiList = document.createElement('div');
   poiList.className = 'poi-list';
 
   function renderPoiList() {
+    const lang = i18n.getLang();
     const q = searchQuery.trim().toLowerCase();
     poiList.innerHTML = '';
-    const items = PALEMBANG_POIS.filter((p) => {
-      if (activeCategory !== 'all' && p.category !== activeCategory) return false;
+    const items = PALEMBANG_POIS.filter((raw) => {
+      if (activeCategory !== 'all' && raw.category !== activeCategory) return false;
+      const p = i18n.localizePoi(raw);
       if (!q) return true;
       return (
         p.label.toLowerCase().includes(q) ||
@@ -289,9 +312,11 @@ export function createExploreDrawer({
       );
     });
 
-    for (const p of items) {
+    for (const raw of items) {
+      const p = i18n.localizePoi(raw);
       const visited = passport.isVisited(p.id);
       const badge = CAT_BADGE[p.category] || CAT_BADGE.landmark;
+      const catText = lang === 'en' ? badge.en : badge.id;
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `poi-item cat-${p.category}${visited ? ' visited' : ''}`;
@@ -299,62 +324,115 @@ export function createExploreDrawer({
       btn.innerHTML = `
         <div class="poi-item-head">
           <strong>${badge.icon} ${p.label}</strong>
-          <span class="poi-check">${visited ? '✓ Dikunjungi' : badge.label}</span>
+          <span class="poi-check">${visited ? (lang === 'en' ? '✓ Visited' : '✓ Dikunjungi') : catText}</span>
         </div>
         <small class="poi-sig">${p.signature}</small>
       `;
       btn.addEventListener('click', () => {
         cameraModes.stopAll();
-        onSelectPoi(p);
+        playableBoat.stop();
+        onSelectPoi(raw);
       });
       poiList.appendChild(btn);
     }
 
     if (items.length === 0) {
-      poiList.innerHTML = `<p class="drawer-empty">Tidak ada lokasi atau kuliner yang cocok.</p>`;
+      poiList.innerHTML = `<p class="drawer-empty">${lang === 'en' ? 'No matching places found.' : 'Tidak ada lokasi cocok.'}</p>`;
     }
   }
-
   searchInput.addEventListener('input', () => {
     searchQuery = searchInput.value;
     renderPoiList();
   });
 
-  // Procedural Web Audio Ambience Control Strip
+  // v2.3 Real Road Route Planner Card (OSRM + Local OSM A* Fallback)
+  const routeCard = document.createElement('div');
+  routeCard.className = 'gis-card route-card';
+  const optsHtml = PALEMBANG_POIS.map((p) => `<option value="${p.id}">${p.label}</option>`).join('');
+  routeCard.innerHTML = `
+    <p class="drawer-section-label route-heading" data-route-heading>Perencana Rute Jalan Nyata</p>
+    <div class="route-selects">
+      <select class="route-select" data-route-from aria-label="Titik awal">${optsHtml}</select>
+      <select class="route-select" data-route-to aria-label="Tujuan">${optsHtml}</select>
+    </div>
+    <div class="route-btns">
+      <button type="button" class="toggle-btn active route-go-btn" data-route-go>Cari Rute</button>
+      <button type="button" class="passport-reset" data-route-clear>Hapus</button>
+    </div>
+    <div class="measure-result" data-route-result></div>
+  `;
+  const routeHeadingEl = routeCard.querySelector('[data-route-heading]');
+  const routeFromSel = routeCard.querySelector('[data-route-from]');
+  const routeToSel = routeCard.querySelector('[data-route-to]');
+  const routeGoBtn = routeCard.querySelector('[data-route-go]');
+  const routeClearBtn = routeCard.querySelector('[data-route-clear]');
+  const routeResultEl = routeCard.querySelector('[data-route-result]');
+  routeFromSel.value = 'ampera';
+  routeToSel.value = 'kuliner-pempek-candy';
+
+  routeGoBtn.addEventListener('click', async () => {
+    const fromPoi = PALEMBANG_POIS.find((p) => p.id === routeFromSel.value);
+    const toPoi = PALEMBANG_POIS.find((p) => p.id === routeToSel.value);
+    if (!fromPoi || !toPoi || fromPoi.id === toPoi.id) return;
+    routeGoBtn.disabled = true;
+    routeGoBtn.textContent = '...';
+    await routePlanner.planRoute(fromPoi, toPoi);
+    routeGoBtn.disabled = false;
+    routeGoBtn.textContent = t('routeGo');
+  });
+  routeClearBtn.addEventListener('click', () => routePlanner.clearRoute());
+
+  function syncRoute(state) {
+    if (!state) {
+      routeResultEl.innerHTML = '';
+      return;
+    }
+    const srcTag = state.source === 'osrm' ? 'OSRM Live' : 'OSM Palembang Graph';
+    routeResultEl.innerHTML = `
+      <div class="measure-dist">${state.fromLabel} → ${state.toLabel}: <strong>${state.formatted}</strong></div>
+      <div class="measure-eta-grid">
+        <span>🚗 ${state.carEta}</span>
+        <span>🚶 ${state.walkEta}</span>
+      </div>
+      <div class="route-meta-row">
+        <small>${srcTag}</small>
+        <a class="gmaps-link" href="${state.gmapsUrl}" target="_blank" rel="noopener noreferrer">${t('openGmaps')}</a>
+      </div>
+    `;
+  }
+
+  // Procedural Web Audio Strip
   const audioCard = document.createElement('div');
   audioCard.className = 'audio-card';
   audioCard.innerHTML = `
     <div class="audio-head">
       <div class="audio-copy">
         <strong>Ambience Sungai Musi</strong>
-        <small data-audio-status>Nonaktif · Air sungai & klakson kapal</small>
+        <small data-audio-status>Nonaktif · Air sungai &amp; klakson kapal</small>
       </div>
       <button type="button" class="toggle-btn audio-btn" data-drawer-audio-btn>Putar</button>
     </div>
     <div class="audio-vol-row">
       <span>Vol</span>
-      <input type="range" min="0" max="100" value="55" data-audio-volume aria-label="Volume suara ambience" />
-      <button type="button" class="horn-btn" data-horn-btn title="Bunyikan klakson kapal Sungai Musi">Klakson</button>
+      <input type="range" min="0" max="100" value="55" data-audio-volume aria-label="Volume" />
+      <button type="button" class="horn-btn" data-horn-btn>Klakson</button>
     </div>
   `;
   const audioStatusEl = audioCard.querySelector('[data-audio-status]');
   const drawerAudioBtn = audioCard.querySelector('[data-drawer-audio-btn]');
   const audioVolSlider = audioCard.querySelector('[data-audio-volume]');
   const hornBtn = audioCard.querySelector('[data-horn-btn]');
-
   drawerAudioBtn.addEventListener('click', () => onToggleAudio());
-  audioVolSlider.addEventListener('input', () => {
-    ambience.setVolume(Number(audioVolSlider.value) / 100);
-  });
+  audioVolSlider.addEventListener('input', () => ambience.setVolume(Number(audioVolSlider.value) / 100));
   hornBtn.addEventListener('click', () => {
     if (!ambience.isEnabled()) onToggleAudio();
     ambience.playBoatHorn(false);
   });
 
-  explorePanel.append(passportCard, catRow, searchInput, poiList, audioCard);
+  explorePanel.append(passportCard, catRow, searchInput, poiList, routeCard, audioCard);
   tabPanels.set('explore', explorePanel);
 
-  // === TAB 3: Cuaca & GIS (Phase 3: Live Open-Meteo Weather + 3D Rain + Musi Tide + GIS Measure) ===
+  // === TAB 3: Cuaca & GIS ===
   const gisPanel = document.createElement('div');
   gisPanel.className = 'drawer-panel';
   gisPanel.innerHTML = `
@@ -383,7 +461,7 @@ export function createExploreDrawer({
           <button type="button" class="passport-reset" data-tide-reset>Normal</button>
         </div>
       </div>
-      <input type="range" class="tide-slider" min="0" max="3.5" step="0.1" value="0" data-tide-slider aria-label="Simulasi kenaikan muka air Sungai Musi" />
+      <input type="range" class="tide-slider" min="0" max="3.5" step="0.1" value="0" data-tide-slider aria-label="Pasang Sungai Musi" />
       <p class="tide-status level-normal" data-tide-status>Normal · Muka air standar Sungai Musi</p>
     </div>
 
@@ -416,35 +494,25 @@ export function createExploreDrawer({
   const measureResultEl = gisPanel.querySelector('[data-measure-result]');
 
   weatherSyncBtn.addEventListener('click', async () => {
-    weatherSyncBtn.textContent = 'Memuat...';
+    weatherSyncBtn.textContent = '...';
     weatherSyncBtn.disabled = true;
     await weatherGis.syncLiveWeather();
     weatherSyncBtn.textContent = 'Sync Live';
     weatherSyncBtn.disabled = false;
   });
-
   for (const btn of weatherModeBtns) {
     btn.addEventListener('click', () => {
       const m = btn.dataset.weatherBtn;
       weatherGis.setWeatherMode(m, { source: 'manual', storm: m === 'hujan' });
     });
   }
-
-  tideSlider.addEventListener('input', () => {
-    weatherGis.setTideMeters(Number(tideSlider.value));
-  });
+  tideSlider.addEventListener('input', () => weatherGis.setTideMeters(Number(tideSlider.value)));
   tideResetBtn.addEventListener('click', () => {
     tideSlider.value = '0';
     weatherGis.setTideMeters(0);
   });
-
-  measureToggleBtn.addEventListener('click', () => {
-    const next = !weatherGis.getMeasureState().active;
-    weatherGis.setMeasureActive(next);
-  });
-  measureClearBtn.addEventListener('click', () => {
-    weatherGis.clearMeasurePoints();
-  });
+  measureToggleBtn.addEventListener('click', () => weatherGis.setMeasureActive(!weatherGis.getMeasureState().active));
+  measureClearBtn.addEventListener('click', () => weatherGis.clearMeasurePoints());
 
   const MEASURE_PRESETS = {
     'ampera-kemaro': [
@@ -461,6 +529,260 @@ export function createExploreDrawer({
       const pair = MEASURE_PRESETS[btn.dataset.measurePreset];
       if (pair) weatherGis.setMeasurePoints(pair[0], pair[1]);
     });
+  }
+  tabPanels.set('gis', gisPanel);
+
+  // === TAB 4: Festival, 24h Time-Lapse & Photo Mode (v2.1) ===
+  const festPanel = document.createElement('div');
+  festPanel.className = 'drawer-panel';
+  festPanel.innerHTML = `
+    <p class="drawer-section-label" data-sec-clock>Waktu 24 Jam &amp; Time-Lapse</p>
+    <div class="gis-card">
+      <div class="tide-head">
+        <strong data-clock-display>11:30 WIB</strong>
+        <button type="button" class="toggle-btn clock-play-btn" data-timelapse-btn>Putar 24 Jam</button>
+      </div>
+      <input type="range" class="tide-slider clock-slider" min="0" max="23.9" step="0.1" value="11.5" data-hour-slider aria-label="Waktu 24 jam" />
+      <div class="clock-ticks"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:59</span></div>
+    </div>
+
+    <p class="drawer-section-label" data-sec-fest>Festival Budaya Palembang 3D</p>
+    <div class="action-stack">
+      <button type="button" class="action-card" data-festival-btn="bidar">
+        <span class="action-icon" aria-hidden="true">🚣</span>
+        <span class="action-copy">
+          <strong data-fest-bidar-title>Festival Balap Perahu Bidar</strong>
+          <small data-fest-bidar-desc>6 perahu bidar panjang balapan di koridor BKB–Ampera</small>
+        </span>
+        <span class="action-pill" data-fest-pill="bidar">Mulai</span>
+      </button>
+      <button type="button" class="action-card" data-festival-btn="fireworks">
+        <span class="action-icon" aria-hidden="true">🎆</span>
+        <span class="action-copy">
+          <strong data-fest-fw-title>Malam Kembang Api &amp; Lampion</strong>
+          <small data-fest-fw-desc>Kembang api di atas Ampera + 48 lampion Pulau Kemaro</small>
+        </span>
+        <span class="action-pill" data-fest-pill="fireworks">Mulai</span>
+      </button>
+    </div>
+
+    <p class="drawer-section-label" data-sec-photo>Photo Mode (Kartu Pos 3D)</p>
+    <button type="button" class="action-card" data-photo-enter="true">
+      <span class="action-icon" aria-hidden="true">📸</span>
+      <span class="action-copy">
+        <strong data-photo-title>Masuk Photo Mode</strong>
+        <small data-photo-desc>Sembunyikan HUD &amp; unduh kartu pos PNG resolusi penuh</small>
+      </span>
+      <span class="action-pill">Buka</span>
+    </button>
+  `;
+
+  const secClockEl = festPanel.querySelector('[data-sec-clock]');
+  const secFestEl = festPanel.querySelector('[data-sec-fest]');
+  const secPhotoEl = festPanel.querySelector('[data-sec-photo]');
+  const clockDisplayEl = festPanel.querySelector('[data-clock-display]');
+  const hourSlider = festPanel.querySelector('[data-hour-slider]');
+  const timelapseBtn = festPanel.querySelector('[data-timelapse-btn]');
+  const bidarBtn = festPanel.querySelector('[data-festival-btn="bidar"]');
+  const fwBtn = festPanel.querySelector('[data-festival-btn="fireworks"]');
+  const photoEnterBtn = festPanel.querySelector('[data-photo-enter]');
+
+  hourSlider.addEventListener('input', () => onSetHour(Number(hourSlider.value)));
+  timelapseBtn.addEventListener('click', () => onToggleTimelapse());
+  bidarBtn.addEventListener('click', () => onSetFestival(festival3d.getMode() === 'bidar' ? 'none' : 'bidar'));
+  fwBtn.addEventListener('click', () => onSetFestival(festival3d.getMode() === 'fireworks' ? 'none' : 'fireworks'));
+  photoEnterBtn.addEventListener('click', () => onEnterPhotoMode());
+
+  tabPanels.set('festival', festPanel);
+
+  body.append(ridePanel, explorePanel, gisPanel, festPanel);
+  drawer.append(head, tabBar, body);
+
+  // --- Floating Active Experience Banner (Ride-Along / Tour / Drone / Playable Boat) ---
+  const banner = document.createElement('div');
+  banner.className = 'mode-banner hidden';
+  banner.setAttribute('aria-live', 'polite');
+
+  const bannerInfo = document.createElement('div');
+  bannerInfo.className = 'mode-banner-info';
+  const bannerTitle = document.createElement('strong');
+  const bannerDetail = document.createElement('span');
+  bannerInfo.append(bannerTitle, bannerDetail);
+
+  const bannerActions = document.createElement('div');
+  bannerActions.className = 'mode-banner-actions';
+  banner.append(bannerInfo, bannerActions);
+
+  // --- Photo Mode Bottom Shutter Bar ---
+  const photoBar = document.createElement('div');
+  photoBar.className = 'photo-bar hidden';
+  const shutterBtn = document.createElement('button');
+  shutterBtn.type = 'button';
+  shutterBtn.className = 'banner-btn photo-shutter-btn';
+  shutterBtn.dataset.photoShutter = 'true';
+  shutterBtn.addEventListener('click', () => onDownloadPostcard(photoWatermark));
+
+  const wmToggleBtn = document.createElement('button');
+  wmToggleBtn.type = 'button';
+  wmToggleBtn.className = 'banner-btn active';
+  wmToggleBtn.addEventListener('click', () => {
+    photoWatermark = !photoWatermark;
+    wmToggleBtn.classList.toggle('active', photoWatermark);
+    wmToggleBtn.textContent = `${t('photoWatermark')}: ${photoWatermark ? 'ON' : 'OFF'}`;
+  });
+
+  const photoExitBtn = document.createElement('button');
+  photoExitBtn.type = 'button';
+  photoExitBtn.className = 'banner-btn banner-stop';
+  photoExitBtn.dataset.photoExit = 'true';
+  photoExitBtn.addEventListener('click', () => onExitPhotoMode());
+
+  photoBar.append(shutterBtn, wmToggleBtn, photoExitBtn);
+
+  // --- Toast ---
+  const toast = document.createElement('div');
+  toast.className = 'passport-toast hidden';
+  toast.setAttribute('aria-live', 'polite');
+  let toastTimer = null;
+
+  function showToast(text) {
+    clearTimeout(toastTimer);
+    toast.textContent = text;
+    toast.classList.remove('hidden');
+    toastTimer = setTimeout(() => toast.classList.add('hidden'), 3000);
+  }
+
+  function bindHold(btn, downFn, upFn) {
+    const start = (e) => {
+      e.preventDefault();
+      downFn();
+    };
+    btn.addEventListener('pointerdown', start);
+    btn.addEventListener('pointerup', upFn);
+    btn.addEventListener('pointerleave', upFn);
+    btn.addEventListener('pointercancel', upFn);
+  }
+
+  function syncModeBanner(camState, boatState = playableBoat.getState()) {
+    const boatOn = Boolean(boatState?.active);
+    for (const [id, item] of modeActionBtns) {
+      const active = id === 'play-boat' ? boatOn : !boatOn && camState.mode === id;
+      item.btn.classList.toggle('active', active);
+      const pill = item.btn.querySelector('[data-action-pill]');
+      if (pill) pill.textContent = active ? t('active') : t('start');
+    }
+
+    if (boatOn) {
+      const lang = i18n.getLang();
+      banner.classList.remove('hidden');
+      bannerTitle.textContent =
+        lang === 'en'
+          ? `⛵ Steer Ketek · ${boatState.speedKmh} km/h · Relics ${boatState.collectedCount}/${boatState.totalRelics}`
+          : `⛵ Setir Perahu Ketek · ${boatState.speedKmh} km/j · Artefak ${boatState.collectedCount}/${boatState.totalRelics}`;
+      if (boatState.completed) {
+        bannerDetail.textContent =
+          lang === 'en'
+            ? `🏆 All 5 Srivijaya Relics Collected in ${boatState.elapsedSec}s!`
+            : `🏆 Semua 5 Artefak Sriwijaya Terkumpul (${boatState.elapsedSec} dtk)!`;
+      } else if (boatState.nearestRelic) {
+        const rName = lang === 'en' ? boatState.nearestRelic.nameEn : boatState.nearestRelic.nameId;
+        bannerDetail.textContent =
+          lang === 'en'
+            ? `Nearest: ${rName} (${boatState.nearestRelic.distM} m) · WASD / Arrows`
+            : `Terdekat: ${rName} (${boatState.nearestRelic.distM} m) · WASD / Panah`;
+      }
+
+      if (!bannerActions.dataset.boatControlsMounted) {
+        bannerActions.innerHTML = '';
+        bannerActions.dataset.boatControlsMounted = 'true';
+        const pad = document.createElement('div');
+        pad.className = 'drone-pad';
+        const controls = [
+          ['↑', () => playableBoat.setVirtualInput({ throttle: 1 }), () => playableBoat.setVirtualInput({ throttle: 0 })],
+          ['↓', () => playableBoat.setVirtualInput({ throttle: -1 }), () => playableBoat.setVirtualInput({ throttle: 0 })],
+          ['←', () => playableBoat.setVirtualInput({ steer: -1 }), () => playableBoat.setVirtualInput({ steer: 0 })],
+          ['→', () => playableBoat.setVirtualInput({ steer: 1 }), () => playableBoat.setVirtualInput({ steer: 0 })],
+        ];
+        for (const [sym, dn, up] of controls) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'banner-btn drone-key';
+          b.textContent = sym;
+          bindHold(b, dn, up);
+          pad.appendChild(b);
+        }
+        const resetBtn = document.createElement('button');
+        resetBtn.type = 'button';
+        resetBtn.className = 'banner-btn';
+        resetBtn.textContent = 'Reset';
+        resetBtn.addEventListener('click', () => playableBoat.start({ reset: true }));
+
+        const stopBtn = document.createElement('button');
+        stopBtn.type = 'button';
+        stopBtn.className = 'banner-btn banner-stop';
+        stopBtn.textContent = t('stop');
+        stopBtn.dataset.stopModeBtn = 'true';
+        stopBtn.addEventListener('click', () => playableBoat.stop());
+
+        bannerActions.append(pad, resetBtn, stopBtn);
+      }
+      return;
+    }
+
+    delete bannerActions.dataset.boatControlsMounted;
+    if (camState.mode === 'free') {
+      banner.classList.add('hidden');
+      return;
+    }
+
+    banner.classList.remove('hidden');
+    bannerTitle.textContent = camState.label;
+    bannerDetail.textContent = camState.detail;
+    bannerActions.innerHTML = '';
+
+    if (camState.mode === 'tour') {
+      const pauseBtn = document.createElement('button');
+      pauseBtn.type = 'button';
+      pauseBtn.className = 'banner-btn';
+      pauseBtn.textContent = camState.tourPaused ? 'Lanjut' : 'Jeda';
+      pauseBtn.addEventListener('click', () => cameraModes.toggleTourPause());
+
+      const nextBtn = document.createElement('button');
+      nextBtn.type = 'button';
+      nextBtn.className = 'banner-btn';
+      nextBtn.textContent = 'Berikutnya';
+      nextBtn.addEventListener('click', () => cameraModes.nextTourStop());
+
+      bannerActions.append(pauseBtn, nextBtn);
+    } else if (camState.mode === 'drone') {
+      const pad = document.createElement('div');
+      pad.className = 'drone-pad';
+      const btns = [
+        ['↑', { forward: 1 }, { forward: 0 }],
+        ['↓', { forward: -1 }, { forward: 0 }],
+        ['←', { right: -1 }, { right: 0 }],
+        ['→', { right: 1 }, { right: 0 }],
+        ['+', { up: -1 }, { up: 0 }],
+        ['−', { up: 1 }, { up: 0 }],
+      ];
+      for (const [txt, dn, up] of btns) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'banner-btn drone-key';
+        b.textContent = txt;
+        bindHold(b, () => cameraModes.setVirtualDroneInput(dn), () => cameraModes.setVirtualDroneInput(up));
+        pad.appendChild(b);
+      }
+      bannerActions.appendChild(pad);
+    }
+
+    const stopBtn = document.createElement('button');
+    stopBtn.type = 'button';
+    stopBtn.className = 'banner-btn banner-stop';
+    stopBtn.textContent = t('stop');
+    stopBtn.dataset.stopModeBtn = 'true';
+    stopBtn.addEventListener('click', () => cameraModes.stopAll());
+    bannerActions.appendChild(stopBtn);
   }
 
   function syncWeather(state) {
@@ -512,115 +834,26 @@ export function createExploreDrawer({
     }
   }
 
-  tabPanels.set('gis', gisPanel);
-
-  body.append(ridePanel, explorePanel, gisPanel);
-  drawer.append(head, tabBar, body);
-
-  // --- Floating Active Experience Banner ---
-  const banner = document.createElement('div');
-  banner.className = 'mode-banner hidden';
-  banner.setAttribute('aria-live', 'polite');
-
-  const bannerInfo = document.createElement('div');
-  bannerInfo.className = 'mode-banner-info';
-  const bannerTitle = document.createElement('strong');
-  const bannerDetail = document.createElement('span');
-  bannerInfo.append(bannerTitle, bannerDetail);
-
-  const bannerActions = document.createElement('div');
-  bannerActions.className = 'mode-banner-actions';
-  banner.append(bannerInfo, bannerActions);
-
-  // Subtle Passport Stamp Toast (bottom-left above hint)
-  const toast = document.createElement('div');
-  toast.className = 'passport-toast hidden';
-  toast.setAttribute('aria-live', 'polite');
-  let toastTimer = null;
-
-  function showToast(text) {
-    clearTimeout(toastTimer);
-    toast.textContent = text;
-    toast.classList.remove('hidden');
-    toastTimer = setTimeout(() => toast.classList.add('hidden'), 2800);
+  function syncClock(hour, isTimelapse) {
+    const h = Math.floor(hour) % 24;
+    const m = Math.floor((hour - Math.floor(hour)) * 60);
+    clockDisplayEl.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} WIB`;
+    hourSlider.value = String(hour.toFixed(1));
+    timelapseBtn.classList.toggle('active', isTimelapse);
+    timelapseBtn.textContent = isTimelapse ? t('timelapseStop') : t('timelapse');
   }
 
-  function bindHold(btn, downPatch, upPatch) {
-    const start = (e) => {
-      e.preventDefault();
-      cameraModes.setVirtualDroneInput(downPatch);
-    };
-    const end = () => cameraModes.setVirtualDroneInput(upPatch);
-    btn.addEventListener('pointerdown', start);
-    btn.addEventListener('pointerup', end);
-    btn.addEventListener('pointerleave', end);
-    btn.addEventListener('pointercancel', end);
+  function syncFestival(festMode) {
+    const isBidar = festMode === 'bidar';
+    const isFw = festMode === 'fireworks';
+    bidarBtn.classList.toggle('active', isBidar);
+    fwBtn.classList.toggle('active', isFw);
+    festPanel.querySelector('[data-fest-pill="bidar"]').textContent = isBidar ? t('active') : t('start');
+    festPanel.querySelector('[data-fest-pill="fireworks"]').textContent = isFw ? t('active') : t('start');
   }
 
-  function syncModeBanner(state) {
-    for (const [id, btn] of modeActionBtns) {
-      const active = state.mode === id;
-      btn.classList.toggle('active', active);
-      const pill = btn.querySelector('.action-pill');
-      if (pill) pill.textContent = active ? 'Aktif' : 'Mulai';
-    }
-
-    if (state.mode === 'free') {
-      banner.classList.add('hidden');
-      return;
-    }
-
-    banner.classList.remove('hidden');
-    bannerTitle.textContent = state.label;
-    bannerDetail.textContent = state.detail;
-    bannerActions.innerHTML = '';
-
-    if (state.mode === 'tour') {
-      const pauseBtn = document.createElement('button');
-      pauseBtn.type = 'button';
-      pauseBtn.className = 'banner-btn';
-      pauseBtn.textContent = state.tourPaused ? 'Lanjut' : 'Jeda';
-      pauseBtn.dataset.tourPauseBtn = 'true';
-      pauseBtn.addEventListener('click', () => cameraModes.toggleTourPause());
-
-      const nextBtn = document.createElement('button');
-      nextBtn.type = 'button';
-      nextBtn.className = 'banner-btn';
-      nextBtn.textContent = 'Berikutnya';
-      nextBtn.dataset.tourNextBtn = 'true';
-      nextBtn.addEventListener('click', () => cameraModes.nextTourStop());
-
-      bannerActions.append(pauseBtn, nextBtn);
-    } else if (state.mode === 'drone') {
-      const pad = document.createElement('div');
-      pad.className = 'drone-pad';
-      const btns = [
-        ['↑', { forward: 1 }, { forward: 0 }, 'Maju (W)'],
-        ['↓', { forward: -1 }, { forward: 0 }, 'Mundur (S)'],
-        ['←', { right: -1 }, { right: 0 }, 'Kiri (A)'],
-        ['→', { right: 1 }, { right: 0 }, 'Kanan (D)'],
-        ['+', { up: -1 }, { up: 0 }, 'Turun (Q)'],
-        ['−', { up: 1 }, { up: 0 }, 'Naik (E)'],
-      ];
-      for (const [txt, dn, up, title] of btns) {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'banner-btn drone-key';
-        b.textContent = txt;
-        b.title = title;
-        bindHold(b, dn, up);
-        pad.appendChild(b);
-      }
-      bannerActions.appendChild(pad);
-    }
-
-    const stopBtn = document.createElement('button');
-    stopBtn.type = 'button';
-    stopBtn.className = 'banner-btn banner-stop';
-    stopBtn.textContent = 'Berhenti';
-    stopBtn.dataset.stopModeBtn = 'true';
-    stopBtn.addEventListener('click', () => cameraModes.stopAll());
-    bannerActions.appendChild(stopBtn);
+  function syncPhotoMode(isPhoto) {
+    photoBar.classList.toggle('hidden', !isPhoto);
   }
 
   function setCategory(catId, notify = true) {
@@ -642,18 +875,69 @@ export function createExploreDrawer({
 
   function syncAudio(isOn) {
     drawerAudioBtn.classList.toggle('active', isOn);
-    drawerAudioBtn.textContent = isOn ? 'Aktif' : 'Putar';
+    drawerAudioBtn.textContent = isOn ? t('active') : 'Putar';
     audioStatusEl.textContent = isOn
       ? 'Aktif · Riak Sungai Musi & kapal'
       : 'Nonaktif · Air sungai & klakson kapal';
   }
 
+  function applyLanguage() {
+    const lang = i18n.getLang();
+    drawerTitleEl.textContent = t('drawerTitle');
+    closeBtn.textContent = t('close');
+    for (const [, item] of tabBtns) {
+      item.btn.textContent = t(item.key);
+    }
+    rideSectionTitle.textContent = t('secRide');
+    tourSectionTitle.textContent = t('secTour');
+    layerTitle.textContent = t('secLayers');
+    for (const [, item] of modeActionBtns) {
+      item.btn.querySelector('[data-i18n-title]').textContent = t(item.titleKey);
+      item.btn.querySelector('[data-i18n-desc]').textContent = t(item.descKey);
+    }
+    bldgToggle.textContent = t('bldg3d');
+    animToggle.textContent = t('anim');
+    labelToggle.textContent = t('label3d');
+    radarToggle.textContent = t('radar');
+    passportEyebrowEl.textContent = t('passportEyebrow');
+    searchInput.placeholder = t('searchPh');
+    routeHeadingEl.textContent = t('routeTitle');
+    routeGoBtn.textContent = t('routeGo');
+    routeClearBtn.textContent = t('routeClear');
+
+    const catLabels = lang === 'en'
+      ? { all: 'All', landmark: 'Landmarks', kuliner: 'Culinary', lrt: 'LRT Stations' }
+      : { all: 'Semua', landmark: 'Landmark', kuliner: 'Kuliner', lrt: 'Stasiun LRT' };
+    for (const cat of POI_CATEGORIES) {
+      const count = cat.id === 'all' ? PALEMBANG_POIS.length : PALEMBANG_POIS.filter((p) => p.category === cat.id).length;
+      catBtns.get(cat.id).textContent = `${catLabels[cat.id]} (${count})`;
+    }
+
+    secClockEl.textContent = t('secClock');
+    secFestEl.textContent = t('secFest');
+    secPhotoEl.textContent = t('secPhoto');
+    festPanel.querySelector('[data-fest-bidar-title]').textContent = t('festBidar');
+    festPanel.querySelector('[data-fest-bidar-desc]').textContent = t('festBidarDesc');
+    festPanel.querySelector('[data-fest-fw-title]').textContent = t('festFireworks');
+    festPanel.querySelector('[data-fest-fw-desc]').textContent = t('festFireworksDesc');
+    festPanel.querySelector('[data-photo-title]').textContent = t('photoBtn');
+    festPanel.querySelector('[data-photo-desc]').textContent = t('photoDesc');
+    shutterBtn.textContent = t('photoShutter');
+    wmToggleBtn.textContent = `${t('photoWatermark')}: ${photoWatermark ? 'ON' : 'OFF'}`;
+    photoExitBtn.textContent = t('photoExit');
+
+    syncModeBanner(cameraModes.getState(), playableBoat.getState());
+    syncFestival(festival3d.getMode());
+    syncRoute(routePlanner.getState());
+    renderPoiList();
+  }
+
   function setTab(tabId) {
     activeTab = tabId;
-    for (const [id, btn] of tabBtns) {
+    for (const [id, item] of tabBtns) {
       const on = id === activeTab;
-      btn.classList.toggle('active', on);
-      btn.setAttribute('aria-selected', String(on));
+      item.btn.classList.toggle('active', on);
+      item.btn.setAttribute('aria-selected', String(on));
     }
     for (const [id, panel] of tabPanels) {
       panel.classList.toggle('active', id === activeTab);
@@ -669,17 +953,18 @@ export function createExploreDrawer({
 
   function syncTrafficToggle(isOn) {
     animToggle.classList.toggle('active', isOn);
-    animToggle.setAttribute('aria-pressed', String(isOn));
   }
 
   setTab('ride');
   setCategory('all', false);
   syncPassport();
   syncAudio(false);
+  applyLanguage();
 
   return {
     drawerEl: drawer,
     bannerEl: banner,
+    photoBarEl: photoBar,
     toastEl: toast,
     setOpen,
     isOpen: () => isOpen,
@@ -692,6 +977,11 @@ export function createExploreDrawer({
     syncWeather,
     syncTide,
     syncMeasure,
+    syncRoute,
+    syncClock,
+    syncFestival,
+    syncPhotoMode,
+    applyLanguage,
     showToast,
   };
 }
