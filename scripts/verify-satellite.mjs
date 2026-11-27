@@ -206,8 +206,37 @@ try {
   await page.screenshot({ path: path.join(artifactsDir, 'preview-sat-drone.png') });
   await page.click('[data-stop-mode-btn="true"]');
 
+  // Phase 2: Jelajah tab -> Kuliner filter -> Select Martabak HAR -> Verify Passport & Audio toggle
+  await page.click('[data-explore-btn="true"]');
+  await page.waitForTimeout(250);
+  await page.click('[data-drawer-tab="explore"]');
+  await page.waitForTimeout(200);
+  await page.click('[data-cat-filter="kuliner"]');
+  await page.waitForTimeout(250);
+  const kulinerState = await page.evaluate(() => ({
+    cat: window.__PALEMBANG_3D__?.activePinCategory,
+    pins: window.__PALEMBANG_3D__?.visiblePinCount,
+  }));
+  if (kulinerState.cat !== 'kuliner' || kulinerState.pins !== 6) {
+    throw new Error(`Kuliner filter mismatch: ${JSON.stringify(kulinerState)}`);
+  }
+  await page.click('[data-poi-card="kuliner-martabak-har"]');
+  await page.waitForTimeout(1600);
+  await waitForMapSettled(page);
+  await page.click('[data-audio-btn="true"]');
+  await page.waitForTimeout(200);
+  const phase2Check = await page.evaluate(() => ({
+    audioEnabled: window.__PALEMBANG_3D__?.audioEnabled,
+    passport: window.__PALEMBANG_3D__?.passport,
+  }));
+  if (!phase2Check.passport?.visitedIds?.includes('kuliner-martabak-har')) {
+    throw new Error(`Passport did not stamp kuliner-martabak-har: ${JSON.stringify(phase2Check)}`);
+  }
+  await page.screenshot({ path: path.join(artifactsDir, 'preview-sat-kuliner.png') });
+  await page.click('[data-audio-btn="true"]');
+
   const telemetry = await page.evaluate(() => window.__PALEMBANG_3D__);
-  console.log(JSON.stringify({ status: 'PASS', animationMoved, drawerOpened, rideLrtMoved, boatMode, droneMoved, animT0, animT1, telemetry, consoleErrors, pageErrors }, null, 2));
+  console.log(JSON.stringify({ status: 'PASS', animationMoved, drawerOpened, rideLrtMoved, boatMode, droneMoved, kulinerState, phase2Check, animT0, animT1, telemetry, consoleErrors, pageErrors }, null, 2));
 } finally {
   if (browser) await browser.close().catch(() => {});
   if (!previewProc.killed) previewProc.kill('SIGTERM');

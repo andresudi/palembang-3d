@@ -1,9 +1,19 @@
 // Collapsible left Exploration Drawer + Active Experience Banner for Real Satellite 3D
-import { REAL_PRESETS } from './realLandmarks.js';
+import { PALEMBANG_POIS, POI_CATEGORIES } from './palembangPois.js';
+
+const CAT_BADGE = {
+  landmark: { icon: '🏛️', label: 'Landmark' },
+  kuliner: { icon: '🍜', label: 'Kuliner' },
+  lrt: { icon: '🚆', label: 'LRT' },
+};
 
 export function createExploreDrawer({
   cameraModes,
-  onSelectPreset,
+  passport,
+  ambience,
+  onSelectPoi,
+  onCategoryChange,
+  onToggleAudio,
   onToggleBuildings,
   onToggleTraffic,
   onToggleLabels,
@@ -12,6 +22,7 @@ export function createExploreDrawer({
 }) {
   let isOpen = false;
   let activeTab = 'ride'; // 'ride' | 'explore' | 'gis'
+  let activeCategory = 'all';
   let searchQuery = '';
 
   // --- Drawer Shell ---
@@ -20,7 +31,6 @@ export function createExploreDrawer({
   drawer.setAttribute('aria-label', 'Panel Eksplorasi Palembang');
   drawer.dataset.open = 'false';
 
-  // Header + Tabs
   const head = document.createElement('div');
   head.className = 'drawer-head';
   head.innerHTML = `<span class="drawer-title">Eksplorasi Palembang</span>`;
@@ -58,7 +68,7 @@ export function createExploreDrawer({
   const body = document.createElement('div');
   body.className = 'drawer-body';
 
-  // === TAB 1: Naik & Tur (Phase 1 Core) ===
+  // === TAB 1: Naik & Tur ===
   const ridePanel = document.createElement('div');
   ridePanel.className = 'drawer-panel';
 
@@ -106,7 +116,10 @@ export function createExploreDrawer({
       desc: 'Susuri Sungai Musi melintasi Ampera & BKB',
       onClick: () => {
         if (cameraModes.getState().mode === 'ride-boat') cameraModes.stopAll();
-        else cameraModes.startRide('boat');
+        else {
+          cameraModes.startRide('boat');
+          ambience?.playBoatHorn(false);
+        }
       },
     }),
     makeActionCard({
@@ -116,7 +129,10 @@ export function createExploreDrawer({
       desc: 'Konvoi kapal tunda & tongkang di alur utama Musi',
       onClick: () => {
         if (cameraModes.getState().mode === 'ride-barge') cameraModes.stopAll();
-        else cameraModes.startRide('barge');
+        else {
+          cameraModes.startRide('barge');
+          ambience?.playBoatHorn(true);
+        }
       },
     })
   );
@@ -153,7 +169,6 @@ export function createExploreDrawer({
   );
   ridePanel.appendChild(tourStack);
 
-  // Layer toggles (moved cleanly from crowded top-bar into drawer!)
   const layerTitle = document.createElement('p');
   layerTitle.className = 'drawer-section-label';
   layerTitle.textContent = 'Lapisan Visual 3D';
@@ -202,15 +217,59 @@ export function createExploreDrawer({
   ridePanel.appendChild(layerRow);
   tabPanels.set('ride', ridePanel);
 
-  // === TAB 2: Jelajah (Search + 10 Curated Landmarks, ready for Phase 2 Culinary/Passport/Audio) ===
+  // === TAB 2: Jelajah (Phase 2: Passport X/20 + Category Filter + Search + Culinary/LRT POIs + Audio) ===
   const explorePanel = document.createElement('div');
   explorePanel.className = 'drawer-panel';
 
+  // Passport Penjelajah Card
+  const passportCard = document.createElement('div');
+  passportCard.className = 'passport-card';
+  passportCard.innerHTML = `
+    <div class="passport-top">
+      <div>
+        <span class="passport-eyebrow">Passport Penjelajah</span>
+        <strong class="passport-rank" data-passport-rank>Wisatawan Baru</strong>
+      </div>
+      <div class="passport-right">
+        <span class="passport-count" data-passport-count>0/20</span>
+        <button type="button" class="passport-reset" data-passport-reset title="Ulangi progress">Reset</button>
+      </div>
+    </div>
+    <div class="passport-bar"><div class="passport-fill" data-passport-fill style="width: 0%"></div></div>
+  `;
+  const passportRankEl = passportCard.querySelector('[data-passport-rank]');
+  const passportCountEl = passportCard.querySelector('[data-passport-count]');
+  const passportFillEl = passportCard.querySelector('[data-passport-fill]');
+  passportCard.querySelector('[data-passport-reset]').addEventListener('click', () => {
+    passport.reset();
+    syncPassport();
+  });
+
+  // Category Filter Pills
+  const catRow = document.createElement('div');
+  catRow.className = 'cat-filter-row';
+  const catBtns = new Map();
+  for (const cat of POI_CATEGORIES) {
+    const count = cat.id === 'all' ? PALEMBANG_POIS.length : PALEMBANG_POIS.filter((p) => p.category === cat.id).length;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cat-pill';
+    btn.dataset.catFilter = cat.id;
+    btn.textContent = `${cat.label} (${count})`;
+    btn.addEventListener('click', () => {
+      setCategory(cat.id);
+    });
+    catRow.appendChild(btn);
+    catBtns.set(cat.id, btn);
+  }
+
+  // Search Box
   const searchInput = document.createElement('input');
   searchInput.type = 'search';
   searchInput.className = 'drawer-search';
-  searchInput.placeholder = 'Cari landmark Palembang...';
-  searchInput.setAttribute('aria-label', 'Cari landmark Palembang');
+  searchInput.placeholder = 'Cari pempek, pindang, stasiun, landmark...';
+  searchInput.setAttribute('aria-label', 'Cari lokasi dan kuliner Palembang');
+  searchInput.dataset.poiSearch = 'true';
 
   const poiList = document.createElement('div');
   poiList.className = 'poi-list';
@@ -218,38 +277,80 @@ export function createExploreDrawer({
   function renderPoiList() {
     const q = searchQuery.trim().toLowerCase();
     poiList.innerHTML = '';
-    const items = REAL_PRESETS.filter(
-      (p) => !q || p.label.toLowerCase().includes(q) || p.title.toLowerCase().includes(q) || p.zone.toLowerCase().includes(q)
-    );
+    const items = PALEMBANG_POIS.filter((p) => {
+      if (activeCategory !== 'all' && p.category !== activeCategory) return false;
+      if (!q) return true;
+      return (
+        p.label.toLowerCase().includes(q) ||
+        p.title.toLowerCase().includes(q) ||
+        p.signature.toLowerCase().includes(q) ||
+        p.zone.toLowerCase().includes(q)
+      );
+    });
+
     for (const p of items) {
+      const visited = passport.isVisited(p.id);
+      const badge = CAT_BADGE[p.category] || CAT_BADGE.landmark;
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'poi-item';
+      btn.className = `poi-item cat-${p.category}${visited ? ' visited' : ''}`;
+      btn.dataset.poiCard = p.id;
       btn.innerHTML = `
-        <strong>${p.label}</strong>
-        <small>${p.zone}</small>
+        <div class="poi-item-head">
+          <strong>${badge.icon} ${p.label}</strong>
+          <span class="poi-check">${visited ? '✓ Dikunjungi' : badge.label}</span>
+        </div>
+        <small class="poi-sig">${p.signature}</small>
       `;
       btn.addEventListener('click', () => {
         cameraModes.stopAll();
-        onSelectPreset(p.id);
+        onSelectPoi(p);
       });
       poiList.appendChild(btn);
     }
+
     if (items.length === 0) {
-      poiList.innerHTML = `<p class="drawer-empty">Tidak ada lokasi cocok.</p>`;
+      poiList.innerHTML = `<p class="drawer-empty">Tidak ada lokasi atau kuliner yang cocok.</p>`;
     }
   }
+
   searchInput.addEventListener('input', () => {
     searchQuery = searchInput.value;
     renderPoiList();
   });
-  renderPoiList();
 
-  const phase2Hint = document.createElement('p');
-  phase2Hint.className = 'drawer-roadmap-note';
-  phase2Hint.textContent = 'Fase 2 berikutnya: filter Kuliner Pempek & Stasiun LRT, Passport Penjelajah, dan audio ambience Sungai Musi.';
+  // Procedural Web Audio Ambience Control Strip
+  const audioCard = document.createElement('div');
+  audioCard.className = 'audio-card';
+  audioCard.innerHTML = `
+    <div class="audio-head">
+      <div class="audio-copy">
+        <strong>Ambience Sungai Musi</strong>
+        <small data-audio-status>Nonaktif · Air sungai & klakson kapal</small>
+      </div>
+      <button type="button" class="toggle-btn audio-btn" data-drawer-audio-btn>Putar</button>
+    </div>
+    <div class="audio-vol-row">
+      <span>Vol</span>
+      <input type="range" min="0" max="100" value="55" data-audio-volume aria-label="Volume suara ambience" />
+      <button type="button" class="horn-btn" data-horn-btn title="Bunyikan klakson kapal Sungai Musi">Klakson</button>
+    </div>
+  `;
+  const audioStatusEl = audioCard.querySelector('[data-audio-status]');
+  const drawerAudioBtn = audioCard.querySelector('[data-drawer-audio-btn]');
+  const audioVolSlider = audioCard.querySelector('[data-audio-volume]');
+  const hornBtn = audioCard.querySelector('[data-horn-btn]');
 
-  explorePanel.append(searchInput, poiList, phase2Hint);
+  drawerAudioBtn.addEventListener('click', () => onToggleAudio());
+  audioVolSlider.addEventListener('input', () => {
+    ambience.setVolume(Number(audioVolSlider.value) / 100);
+  });
+  hornBtn.addEventListener('click', () => {
+    if (!ambience.isEnabled()) onToggleAudio();
+    ambience.playBoatHorn(false);
+  });
+
+  explorePanel.append(passportCard, catRow, searchInput, poiList, audioCard);
   tabPanels.set('explore', explorePanel);
 
   // === TAB 3: Cuaca & GIS (Quick lighting + Phase 3 preview) ===
@@ -277,7 +378,7 @@ export function createExploreDrawer({
   body.append(ridePanel, explorePanel, gisPanel);
   drawer.append(head, tabBar, body);
 
-  // --- Floating Active Experience Banner (Top-Center when Ride-Along / Tour / Drone is active) ---
+  // --- Floating Active Experience Banner ---
   const banner = document.createElement('div');
   banner.className = 'mode-banner hidden';
   banner.setAttribute('aria-live', 'polite');
@@ -291,6 +392,19 @@ export function createExploreDrawer({
   const bannerActions = document.createElement('div');
   bannerActions.className = 'mode-banner-actions';
   banner.append(bannerInfo, bannerActions);
+
+  // Subtle Passport Stamp Toast (bottom-left above hint)
+  const toast = document.createElement('div');
+  toast.className = 'passport-toast hidden';
+  toast.setAttribute('aria-live', 'polite');
+  let toastTimer = null;
+
+  function showToast(text) {
+    clearTimeout(toastTimer);
+    toast.textContent = text;
+    toast.classList.remove('hidden');
+    toastTimer = setTimeout(() => toast.classList.add('hidden'), 2800);
+  }
 
   function bindHold(btn, downPatch, upPatch) {
     const start = (e) => {
@@ -370,6 +484,31 @@ export function createExploreDrawer({
     bannerActions.appendChild(stopBtn);
   }
 
+  function setCategory(catId, notify = true) {
+    activeCategory = catId;
+    for (const [id, btn] of catBtns) {
+      btn.classList.toggle('active', id === activeCategory);
+    }
+    renderPoiList();
+    if (notify) onCategoryChange(activeCategory);
+  }
+
+  function syncPassport() {
+    const sum = passport.getSummary();
+    passportRankEl.textContent = sum.rank;
+    passportCountEl.textContent = `${sum.visitedCount}/${sum.total}`;
+    passportFillEl.style.width = `${sum.percent}%`;
+    renderPoiList();
+  }
+
+  function syncAudio(isOn) {
+    drawerAudioBtn.classList.toggle('active', isOn);
+    drawerAudioBtn.textContent = isOn ? 'Aktif' : 'Putar';
+    audioStatusEl.textContent = isOn
+      ? 'Aktif · Riak Sungai Musi & kapal'
+      : 'Nonaktif · Air sungai & klakson kapal';
+  }
+
   function setTab(tabId) {
     activeTab = tabId;
     for (const [id, btn] of tabBtns) {
@@ -395,14 +534,22 @@ export function createExploreDrawer({
   }
 
   setTab('ride');
+  setCategory('all', false);
+  syncPassport();
+  syncAudio(false);
 
   return {
     drawerEl: drawer,
     bannerEl: banner,
+    toastEl: toast,
     setOpen,
     isOpen: () => isOpen,
     setTab,
+    setCategory,
     syncModeBanner,
     syncTrafficToggle,
+    syncPassport,
+    syncAudio,
+    showToast,
   };
 }

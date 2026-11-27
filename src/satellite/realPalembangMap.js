@@ -1,7 +1,9 @@
 import * as maplibregl from 'maplibre-gl';
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { REAL_PRESETS, REAL_MARKERS } from './realLandmarks.js';
+import { REAL_PRESETS } from './realLandmarks.js';
+import { PALEMBANG_POIS, createPassportStore } from './palembangPois.js';
+import { createAmbienceAudio } from './ambienceAudio.js';
 import { createHeroLandmarksCustomLayer } from './heroLandmarksLayer.js';
 import { createAnimatedTrafficLayer } from './animatedTrafficLayer.js';
 import { createCameraModesController } from './cameraModes.js';
@@ -224,6 +226,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
 
   let activePreset = 'overview';
   let activeLighting = 'siang';
+  let activePinCategory = 'landmark'; // Clean overview starts with Landmark pins; Jelajah filters light up Kuliner/LRT/Semua
   let labelsVisible = true;
   let buildingsVisible = true;
   let trafficVisible = true;
@@ -233,6 +236,8 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
 
   const hero3d = createHeroLandmarksCustomLayer();
   const traffic3d = createAnimatedTrafficLayer();
+  const passport = createPassportStore();
+  const ambience = createAmbienceAudio();
 
   // --- Songket-slate HUD matching Diorama mode + Mode & 3D Buildings toggles ---
   const hud = document.createElement('div');
@@ -297,7 +302,15 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     lightingBtns.set(mode.id, btn);
   }
 
-  // Slim Top-Bar: [Satelit 3D | Diorama] + [Siang | Senja | Malam] + [Eksplorasi Drawer Toggle]
+  // Slim Top-Bar: [Satelit 3D | Diorama] + [Siang | Senja | Malam] + [Suara] + [Eksplorasi]
+  const audioBtn = document.createElement('button');
+  audioBtn.type = 'button';
+  audioBtn.className = 'toggle-btn audio-top-btn';
+  audioBtn.textContent = 'Suara';
+  audioBtn.title = 'Putar / matikan ambience Sungai Musi';
+  audioBtn.dataset.audioBtn = 'true';
+  audioBtn.setAttribute('aria-pressed', 'false');
+
   const exploreBtn = document.createElement('button');
   exploreBtn.type = 'button';
   exploreBtn.className = 'toggle-btn explore-trigger';
@@ -305,7 +318,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   exploreBtn.dataset.exploreBtn = 'true';
   exploreBtn.setAttribute('aria-expanded', 'false');
 
-  topControls.append(modeGroup, lightingGroup, exploreBtn);
+  topControls.append(modeGroup, lightingGroup, audioBtn, exploreBtn);
   topBar.append(brand, topControls);
 
   // Info Card
@@ -378,10 +391,28 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     },
   });
 
+  function toggleAudio() {
+    const isOn = ambience.toggle();
+    audioBtn.classList.toggle('active', isOn);
+    audioBtn.setAttribute('aria-pressed', String(isOn));
+    audioBtn.textContent = isOn ? 'Suara On' : 'Suara';
+    exploreDrawer?.syncAudio(isOn);
+  }
+  audioBtn.addEventListener('click', toggleAudio);
+
   exploreDrawer = createExploreDrawer({
     cameraModes,
-    onSelectPreset(id) {
-      selectPreset(id);
+    passport,
+    ambience,
+    onSelectPoi(poi) {
+      selectPoi(poi);
+    },
+    onCategoryChange(cat) {
+      activePinCategory = cat;
+      refreshMarkerVisibility();
+    },
+    onToggleAudio() {
+      toggleAudio();
     },
     onToggleBuildings() {
       buildingsVisible = !buildingsVisible;
@@ -398,9 +429,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     onToggleLabels() {
       labelsVisible = !labelsVisible;
       rootEl.dataset.labels = String(labelsVisible);
-      for (const m of markerObjs) {
-        m.el.style.display = labelsVisible ? '' : 'none';
-      }
+      refreshMarkerVisibility();
       return labelsVisible;
     },
     onSelectLighting(mode) {
@@ -416,26 +445,56 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     exploreDrawer.setOpen(!exploreDrawer.isOpen());
   });
 
-  hud.append(topBar, exploreDrawer.drawerEl, exploreDrawer.bannerEl, infoCard, presetNav, hint);
+  hud.append(topBar, exploreDrawer.drawerEl, exploreDrawer.bannerEl, exploreDrawer.toastEl, infoCard, presetNav, hint);
   rootEl.appendChild(hud);
 
-  // Real-world interactive HTML landmark markers
+  // Real-world interactive HTML POI markers (10 Landmarks + 6 Kuliner + 4 Stasiun LRT)
+  const PIN_PREFIX = { landmark: '', kuliner: '🍜 ', lrt: '🚆 ' };
   const markerObjs = [];
-  for (const pin of REAL_MARKERS) {
+  for (const poi of PALEMBANG_POIS) {
     const el = document.createElement('button');
     el.type = 'button';
-    el.className = 'scene-pin map-pin';
-    el.textContent = pin.label;
-    el.dataset.pinId = pin.id;
-    const targetId = pin.presetId || pin.id;
+    el.className = `scene-pin map-pin pin-${poi.category}`;
+    el.textContent = `${PIN_PREFIX[poi.category] || ''}${poi.label}`;
+    el.dataset.pinId = poi.id;
+    el.dataset.pinCategory = poi.category;
     el.addEventListener('click', (e) => {
       e.stopPropagation();
-      selectPreset(targetId);
+      selectPoi(poi);
     });
     const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-      .setLngLat(pin.lngLat)
+      .setLngLat(poi.center)
       .addTo(map);
-    markerObjs.push({ marker, el });
+    markerObjs.push({ marker, el, poi });
+  }
+
+  function refreshMarkerVisibility() {
+    for (const m of markerObjs) {
+      const catMatch = activePinCategory === 'all' || m.poi.category === activePinCategory;
+      const show = labelsVisible && catMatch;
+      m.el.style.display = show ? '' : 'none';
+      m.el.classList.toggle('visited', passport.isVisited(m.poi.id));
+    }
+  }
+
+  function stampPassport(poiId, label) {
+    const newlyStamped = passport.markVisited(poiId);
+    if (newlyStamped) {
+      const sum = passport.getSummary();
+      exploreDrawer.showToast(`✓ Passport: ${label} (${sum.visitedCount}/${sum.total})`);
+      exploreDrawer.syncPassport();
+      refreshMarkerVisibility();
+    }
+  }
+
+  function syncInfoCard(item, { expand = true } = {}) {
+    infoExpanded = expand;
+    infoCard.classList.toggle('collapsed', !infoExpanded);
+    infoToggle.textContent = infoExpanded ? 'Tutup' : 'Info';
+    infoZone.textContent = item.signature ? `${item.signature}` : item.zone;
+    infoTitle.textContent = item.title;
+    infoBody.textContent = item.summary;
+    infoNote.textContent = item.note;
   }
 
   function syncPresetUi(presetId) {
@@ -446,13 +505,33 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       btn.setAttribute('aria-current', id === activePreset ? 'true' : 'false');
     }
     const p = REAL_PRESETS.find((x) => x.id === activePreset) || REAL_PRESETS[0];
-    infoExpanded = activePreset !== 'overview';
-    infoCard.classList.toggle('collapsed', !infoExpanded);
-    infoToggle.textContent = infoExpanded ? 'Tutup' : 'Info';
-    infoZone.textContent = p.zone;
-    infoTitle.textContent = p.title;
-    infoBody.textContent = p.summary;
-    infoNote.textContent = p.note;
+    syncInfoCard(p, { expand: activePreset !== 'overview' });
+  }
+
+  function selectPoi(poi, opts = {}) {
+    if (!opts.fromTour && cameraModes.getState().mode !== 'free') {
+      cameraModes.stopAll();
+    }
+    // Highlight matching dock preset if this POI maps to one
+    const matchingPreset = REAL_PRESETS.find((x) => x.id === (poi.presetId || poi.id));
+    activePreset = matchingPreset ? matchingPreset.id : poi.id;
+    rootEl.dataset.preset = activePreset;
+    for (const [id, btn] of presetBtns) {
+      btn.classList.toggle('active', id === activePreset);
+      btn.setAttribute('aria-current', id === activePreset ? 'true' : 'false');
+    }
+    syncInfoCard(poi, { expand: true });
+    stampPassport(poi.id, poi.label);
+
+    isFlying = true;
+    map.flyTo({
+      center: poi.center,
+      zoom: poi.zoom,
+      pitch: poi.pitch,
+      bearing: poi.bearing,
+      duration: opts.fromTour ? 1800 : 1200,
+      essential: true,
+    });
   }
 
   function selectPreset(presetId, opts = {}) {
@@ -462,6 +541,9 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       cameraModes.stopAll();
     }
     syncPresetUi(p.id);
+    if (p.id !== 'overview') {
+      stampPassport(p.id, p.label);
+    }
     isFlying = true;
     map.flyTo({
       center: p.center,
@@ -485,6 +567,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     const theme = LIGHTING_THEMES[key];
     hero3d.setLightingMode(key);
     traffic3d.setLightingMode(key);
+    ambience.setMood(key);
 
     if (map.getLayer('satellite-imagery')) {
       map.setSky(theme.sky);
@@ -535,6 +618,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   });
 
   syncPresetUi('overview');
+  refreshMarkerVisibility();
   rootEl.dataset.mode = 'satellite';
   rootEl.dataset.labels = 'true';
   rootEl.dataset.lighting = 'siang';
@@ -552,6 +636,10 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       labelsVisible,
       buildingsVisible,
       trafficVisible,
+      audioEnabled: ambience.isEnabled(),
+      activePinCategory,
+      visiblePinCount: markerObjs.filter((m) => m.el.style.display !== 'none').length,
+      passport: passport.getSummary(),
       drawerOpen: exploreDrawer.isOpen(),
       cameraMode: cameraModes.getState().mode,
       tweening: isFlying,
@@ -575,6 +663,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
 
   return function cleanup() {
     cameraModes.cleanup();
+    ambience.cleanup();
     traffic3d.setEnabled(false);
     for (const m of markerObjs) m.marker.remove();
     map.remove();

@@ -315,6 +315,34 @@ button:focus-visible {
   cursor: pointer;
 }
 
+.scene-pin.pin-kuliner {
+  border-color: rgba(245, 158, 11, 0.72);
+  background: rgba(44, 24, 14, 0.9);
+  color: #fde68a;
+}
+
+.scene-pin.pin-kuliner:hover {
+  background: #b45309;
+  color: #fff;
+}
+
+.scene-pin.pin-lrt {
+  border-color: rgba(56, 189, 248, 0.72);
+  background: rgba(14, 30, 46, 0.9);
+  color: #bae6fd;
+}
+
+.scene-pin.pin-lrt:hover {
+  background: #0369a1;
+  color: #fff;
+}
+
+.scene-pin.visited::after {
+  content: " ✓";
+  color: #4ade80;
+  font-weight: 700;
+}
+
 .satellite-stage .maplibregl-ctrl-bottom-right {
   bottom: 2px;
   right: 6px;
@@ -735,6 +763,225 @@ button:focus-visible {
 
 .banner-btn.banner-stop:hover {
   background: #dc4539;
+}
+
+/* --- Phase 2: Passport, Category Filter Pills, Rich POI Cards & Web Audio Strip --- */
+.passport-card {
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, rgba(200, 61, 50, 0.18), rgba(216, 173, 92, 0.14));
+  border: 1px solid rgba(216, 173, 92, 0.36);
+  margin-bottom: 9px;
+}
+
+.passport-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.passport-eyebrow {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-gold);
+}
+
+.passport-rank {
+  font-size: 0.84rem;
+  color: var(--ink-primary);
+}
+
+.passport-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.passport-count {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.passport-reset {
+  font-size: 0.66rem;
+  padding: 2px 6px;
+  border-radius: 5px;
+  color: var(--ink-muted);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.passport-reset:hover {
+  color: var(--ink-primary);
+}
+
+.passport-bar {
+  height: 5px;
+  margin-top: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.passport-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-ampera), var(--accent-gold));
+  transition: width 260ms ease;
+}
+
+.cat-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.cat-pill {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cat-pill:hover {
+  color: var(--ink-primary);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cat-pill.active {
+  color: #fff;
+  background: var(--accent-ampera);
+  border-color: var(--accent-ampera);
+}
+
+.poi-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.poi-check {
+  font-size: 0.64rem;
+  font-weight: 650;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: var(--ink-muted);
+  background: rgba(255, 255, 255, 0.07);
+  white-space: nowrap;
+}
+
+.poi-item.cat-kuliner .poi-check {
+  color: #fde68a;
+  background: rgba(180, 83, 9, 0.25);
+}
+
+.poi-item.cat-lrt .poi-check {
+  color: #bae6fd;
+  background: rgba(3, 105, 161, 0.25);
+}
+
+.poi-item.visited .poi-check {
+  color: #86efac;
+  background: rgba(22, 163, 74, 0.25);
+}
+
+.poi-sig {
+  color: var(--ink-muted);
+  font-size: 0.69rem;
+  line-height: 1.3;
+}
+
+.audio-card {
+  margin-top: 9px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.audio-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.audio-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.audio-copy strong {
+  font-size: 0.78rem;
+  color: var(--ink-primary);
+}
+
+.audio-copy small {
+  font-size: 0.67rem;
+  color: var(--ink-muted);
+}
+
+.audio-btn {
+  padding: 4px 10px;
+  font-size: 0.72rem;
+}
+
+.audio-vol-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+  font-size: 0.68rem;
+  color: var(--ink-muted);
+}
+
+.audio-vol-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent-gold);
+}
+
+.horn-btn {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: rgba(216, 173, 92, 0.16);
+  color: var(--accent-gold);
+  border: 1px solid rgba(216, 173, 92, 0.35);
+}
+
+.horn-btn:hover {
+  background: rgba(216, 173, 92, 0.28);
+}
+
+.passport-toast {
+  position: absolute;
+  left: 16px;
+  bottom: 84px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #dcfce7;
+  background: rgba(15, 36, 26, 0.92);
+  border: 1px solid rgba(74, 222, 128, 0.55);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.38);
+  pointer-events: none;
+  z-index: 16;
+}
+
+.passport-toast.hidden {
+  display: none;
 }
 
 .webgl-fallback {

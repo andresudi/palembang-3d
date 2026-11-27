@@ -32,9 +32,13 @@ Switch seamlessly with one click in the top bar between:
 | :---: | :---: |
 | ![Ampera Bridge Real Satellite 3D Day](docs/screenshots/sat-ampera.png) | ![Kemaro Island Real Satellite 3D](docs/screenshots/sat-kemaro.png) |
 
-| Exploration Drawer (Ride-Along, Tour & Drone) | Ride-Along South Sumatra LRT & Perahu Ketek |
+| Exploration Drawer (Ride-Along, Tour & Drone) | Culinary Explorer, Passport (X/20) & Audio Ambience |
 | :---: | :---: |
-| ![Exploration Drawer](docs/screenshots/sat-drawer.png) | ![Ride-Along Perahu Ketek Musi River](docs/screenshots/sat-ride-boat.png) |
+| ![Exploration Drawer](docs/screenshots/sat-drawer.png) | ![Palembang Culinary Explorer & Passport](docs/screenshots/sat-kuliner.png) |
+
+| Ride-Along Perahu Ketek (Musi River) | Ride-Along South Sumatra LRT |
+| :---: | :---: |
+| ![Ride-Along Perahu Ketek Musi River](docs/screenshots/sat-ride-boat.png) | ![Ride-Along South Sumatra LRT](docs/screenshots/sat-ride-lrt.png) |
 
 ---
 
@@ -66,7 +70,8 @@ Switch seamlessly with one click in the top bar between:
 - **Offline Stylized PBR Diorama Mode**:
   - 100% procedural canvas PBR textures (grained asphalt, stone plaza paving, terracotta roof tiles, weathered colonial plaster, mowed stadium turf, multi-story shophouse facades with glowing night windows), dynamic `PMREMGenerator` sky IBL, drifting clouds & night starfield, animated river/road/LRT traffic, and mood-tuned `UnrealBloomPass`.
 - **Unified Interactive Controls & Exploration Drawer**:
-  - **Slim Top-Bar + Collapsible Left Drawer (`Eksplorasi`)**: Keeps 90%+ of the 3D viewport unobstructed while organizing **Ride-Along**, **Cinematic Auto-Tour**, **Free Drone (`WASD`/Arrows + `Q`/`E` + on-screen controls)**, **Landmark Search**, and **3D Layer Toggles** (`Gedung 3D`, `Animasi`, `Label 3D`).
+  - **Slim Top-Bar + Collapsible Left Drawer (`Eksplorasi`)**: Keeps 90%+ of the 3D viewport unobstructed while organizing **Ride-Along**, **Cinematic Auto-Tour**, **Free Drone (`WASD`/Arrows + `Q`/`E` + on-screen controls)**, **Tourism & Culinary Explorer**, and **3D Layer Toggles** (`Gedung 3D`, `Animasi`, `Label 3D`).
+  - **Tourism, Culinary & Explorer Passport (`20` POIs)**: Filter color-coded 3D map pins across **10 Landmarks** (including Monpera), **6 Legendary Palembang Culinary Spots** (Pempek Candy, Pempek Vico, Kampung Pempek 26 Ilir, Martabak HAR, Mie Celor 26 Ilir, River Side BKB), and **4 South Sumatra LRT Stations**, complete with live search, persistent `localStorage` **Explorer Passport (`X/20`)** rank badges, and **Procedural Web Audio Ambience** (Musi River water lapping, tropical breeze, and distant riverboat horns — 100% browser-native with top-bar mute toggle).
   - **1-Click Ride-Along Modes**: Hop aboard a moving 3-car **LRT Sumsel** train (with nearest-station telemetry), ride a **Perahu Ketek** along the Musi River toward Ampera Bridge, or trail a **Coal Barge** convoy.
   - **1-Click Mode Switcher**: `Satelit 3D` ↔ `Diorama` (or direct URL `?mode=satellite` / `?mode=diorama`).
   - **10 Camera Presets**: `Overview`, `Ampera`, `Bundaran & Masjid`, `Pasar 16 Ilir`, `Kuto Besak`, `Walikota & KI`, `Kampung Kapitan`, `Jakabaring`, `Jembatan Musi IV`, and `Pulau Kemaro`.
