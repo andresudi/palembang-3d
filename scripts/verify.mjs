@@ -123,7 +123,7 @@ async function sampleCanvasNonUniformity(page) {
 }
 
 const PORT = 4179;
-const BASE_URL = `http://127.0.0.1:${PORT}/`;
+const BASE_URL = `http://127.0.0.1:${PORT}/?mode=diorama`;
 
 const previewProc = spawn(
   process.execPath,

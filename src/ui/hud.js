@@ -7,6 +7,7 @@ export function createHud({
   onSelectPreset,
   onSelectLighting,
   onToggleLabels,
+  onSwitchMode,
 }) {
   let activePreset = 'overview';
   let activeLighting = 'siang';
@@ -33,6 +34,29 @@ export function createHud({
 
   const topControls = document.createElement('div');
   topControls.className = 'top-controls';
+
+  if (onSwitchMode) {
+    const modeGroup = document.createElement('div');
+    modeGroup.className = 'segmented-control';
+    modeGroup.setAttribute('role', 'group');
+    modeGroup.setAttribute('aria-label', 'Mode visualisasi');
+
+    const satBtn = document.createElement('button');
+    satBtn.type = 'button';
+    satBtn.className = 'seg-btn';
+    satBtn.textContent = 'Satelit 3D';
+    satBtn.dataset.modeBtn = 'satellite';
+    satBtn.addEventListener('click', () => onSwitchMode('satellite'));
+
+    const dioBtn = document.createElement('button');
+    dioBtn.type = 'button';
+    dioBtn.className = 'seg-btn active';
+    dioBtn.textContent = 'Diorama';
+    dioBtn.dataset.modeBtn = 'diorama';
+
+    modeGroup.append(satBtn, dioBtn);
+    topControls.appendChild(modeGroup);
+  }
 
   const lightingGroup = document.createElement('div');
   lightingGroup.className = 'segmented-control';

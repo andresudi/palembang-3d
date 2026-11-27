@@ -310,6 +310,37 @@ button:focus-visible {
   background: var(--accent-ampera);
 }
 
+.scene-pin.map-pin {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.satellite-stage .maplibregl-ctrl-bottom-right {
+  bottom: 2px;
+  right: 6px;
+}
+
+.satellite-stage .maplibregl-ctrl-attrib {
+  background: rgba(16, 22, 27, 0.78);
+  color: var(--ink-muted);
+  font-size: 0.62rem;
+  border-radius: 6px;
+}
+
+.satellite-stage .maplibregl-ctrl-attrib a {
+  color: var(--ink-primary);
+}
+
+[data-mode="satellite"] .controls-hint {
+  bottom: 10px;
+  left: 16px;
+  transform: none;
+}
+
+[data-mode="satellite"] .preset-dock {
+  bottom: 34px;
+}
+
 .webgl-fallback {
   max-width: 540px;
   margin: 12vh auto 0;

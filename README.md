@@ -1,54 +1,69 @@
-# Kota Palembang 3D — Interactive Stylized Diorama
+# Kota Palembang 3D — Real Satellite 3D & Interactive Diorama
 
-An interactive procedural 3D visualization of **Palembang, South Sumatra, Indonesia**, built with **Three.js (`^0.187.0`)** and **Vite (`^8.4.0`)**. The entire scene runs locally with zero runtime CDN dependencies, bringing together the **Musi River** corridor, connected urban road networks, high-density `InstancedMesh` neighborhoods, and **11 iconic Palembang landmarks** across Seberang Ilir and Seberang Ulu.
+A dual-mode interactive 3D web visualization of **Palembang, South Sumatra, Indonesia**, built with **MapLibre GL JS (`^6.19.0`)**, **Three.js (`^0.187.0`)**, and **Vite (`^8.4.0`)** — requiring **zero paid API keys**.
 
-> A companion deep-dive engineering & feasibility report (in Indonesian) is included at [`ANALISIS_PALEMBANG_3D.md`](./ANALISIS_PALEMBANG_3D.md).
+Switch seamlessly with one click in the top bar between:
+1. **Real Satellite 3D Mode (`Satelit 3D`, default)** — Real 1:1 GPS scale combining **Esri World Imagery** satellite photography, **OpenFreeMap / OpenStreetMap** 3D building extrusions, **AWS Terrarium** 3D terrain elevation, and custom true-scale **Three.js WebGL 3D overlays** for **Ampera Bridge**, **Musi IV Bridge**, and **Kemaro Island 9-Story Pagoda**.
+2. **Stylized PBR Diorama Mode (`Diorama`)** — 100% offline/zero-CDN procedural Three.js miniature diorama featuring procedural PBR textures, dynamic `PMREMGenerator` sky IBL reflections, animated river & road traffic, 11 iconic landmarks, and `UnrealBloomPass` lighting.
 
-## Visual Showcase
+> A companion engineering & feasibility analysis report (in Indonesian) is included at [`ANALISIS_PALEMBANG_3D.md`](./ANALISIS_PALEMBANG_3D.md).
 
-### Overview — Musi River Corridor (Day & Night)
+---
 
-![Kota Palembang 3D Overview - Day](docs/screenshots/overview-day.png)
+## Mode 1: Real Satellite 3D (Esri + OSM 3D + Three.js Overlays)
 
-![Kota Palembang 3D Overview - Night](docs/screenshots/overview-night.png)
+### Musi River Corridor — Real 1:1 Scale (Day & Night)
 
-### Ampera Bridge at Sunset
+![Real Satellite 3D Palembang - Day](docs/screenshots/sat-overview-day.png)
 
-![Ampera Bridge at Sunset](docs/screenshots/ampera-sunset.png)
+![Real Satellite 3D Palembang - Night](docs/screenshots/sat-overview-night.png)
 
-### Iconic Landmarks & Districts
+### Real-World Landmarks Gallery
 
-| Fountain Roundabout, Great Mosque & Monpera | Pasar 16 Ilir Heritage Market District |
+| Ampera Bridge 3D Overlay (1:1 GPS Scale) | Fountain Roundabout, Great Mosque & Monpera |
 | :---: | :---: |
-| ![Fountain Roundabout & Great Mosque](docs/screenshots/bundaran-masjid.png) | ![Pasar 16 Ilir](docs/screenshots/pasar-16-ilir.png) |
+| ![Ampera Bridge Real Satellite 3D](docs/screenshots/sat-ampera.png) | ![Great Mosque & BAM Real Satellite 3D](docs/screenshots/sat-masjid.png) |
 
-| Benteng Kuto Besak & SMB II Museum | City Hall (Water Tower) & Kambang Iwak Park |
+| Gelora Sriwijaya Jakabaring Sport City | Musi IV Cable-Stayed Bridge 3D Overlay |
 | :---: | :---: |
-| ![Benteng Kuto Besak](docs/screenshots/kuto-besak.png) | ![City Hall & Kambang Iwak](docs/screenshots/walikota-kambang-iwak.png) |
+| ![Jakabaring Sport City Real 3D](docs/screenshots/sat-jakabaring.png) | ![Musi IV Bridge Real Satellite 3D](docs/screenshots/sat-musi-iv.png) |
 
-| Kampung Kapitan & 7 Ulu Waterfront | Gelora Sriwijaya Jakabaring Stadium (Night) |
+| Kemaro Island & 9-Story Pagoda Overlay |
+| :---: |
+| ![Kemaro Island Real Satellite 3D](docs/screenshots/sat-kemaro.png) |
+
+---
+
+## Mode 2: Offline Stylized PBR Diorama (Three.js + UnrealBloom)
+
+| Overview — Day | Overview — Night (UnrealBloom) |
 | :---: | :---: |
-| ![Kampung Kapitan](docs/screenshots/kampung-kapitan.png) | ![Jakabaring Stadium Night](docs/screenshots/jakabaring-night.png) |
+| ![Stylized Diorama Overview Day](docs/screenshots/overview-day.png) | ![Stylized Diorama Overview Night](docs/screenshots/overview-night.png) |
 
-| Musi IV Cable-Stayed Bridge | Kemaro Island & 9-Story Pagoda |
+| Ampera Bridge at Sunset | Jakabaring Stadium Night Floodlights |
 | :---: | :---: |
-| ![Musi IV Bridge](docs/screenshots/musi-iv.png) | ![Kemaro Island](docs/screenshots/pulau-kemaro.png) |
+| ![Ampera Sunset Diorama](docs/screenshots/ampera-sunset.png) | ![Jakabaring Night Diorama](docs/screenshots/jakabaring-night.png) |
 
-## Included Landmarks & Features
+| Benteng Kuto Besak & SMB II Museum | Pasar 16 Ilir & Kampung Kapitan |
+| :---: | :---: |
+| ![Benteng Kuto Besak Diorama](docs/screenshots/kuto-besak.png) | ![Pasar 16 Ilir Diorama](docs/screenshots/pasar-16-ilir.png) |
 
-- **Musi River & Waterfront Embankments**: Custom animated water-ripple shader with sun/dusk/night reflections, Seberang Ilir & Seberang Ulu riverbanks, wooden landing piers, plus live river traffic (*perahu ketek* boats and coal barges with tugboats).
-- **Ampera Bridge & Musi IV Bridge**: Iconic brick-red **Ampera Bridge** (twin H-portal towers, steel truss span, counterweights, streetlamps, moving traffic) paired with the modern white cable-stayed **Musi IV Bridge** downstream with night LED strips and full navigation-channel clearance.
-- **Seberang Ilir City Core**: Animated **Bundaran Air Mancur** (Fountain Roundabout), **Great Mosque of Sultan Mahmud Badaruddin I** (3-tiered Palembang roof & white minarets), **Monpera Monument**, and the **Pasar 16 Ilir** market building with colorful riverside stalls.
-- **Heritage & Civic West District**: **Benteng Kuto Besak (BKB)** fortress & Plaza BKB, colonial **SMB II Museum**, **Palembang City Hall** (*Menara Air / Gedung Ledeng* water tower), and **Kambang Iwak Lake & Park** with a jogging track and gazebo.
-- **Seberang Ulu, Kampung Kapitan & Jakabaring Sport City**: Heritage **Kampung Kapitan (7 Ulu)** stilt pavilions and traditional **Rumah Limas** clusters, **Gelora Sriwijaya Jakabaring Stadium** (twin arched canopies & 4 illuminated night floodlight towers), and the elevated **South Sumatra LRT** line running between Ampera Station and Jakabaring Station.
-- **Kemaro Island**: Downstream river island featuring the 9-story red-and-gold octagonal **Pagoda**, **Hok Tjing Rio Temple**, tropical foliage, and wooden jetty.
-- **Connected Road Grid & Urban Fabric (`InstancedMesh`)**: Zoned commercial/residential paving, major Palembang avenues (*Jl. Jenderal Sudirman, Jl. Kolonel Atmo, Jl. Merdeka, Jl. Jenderal Ahmad Yani, Jl. Gubernur H. Bastari*) with 40 animated vehicles, 81 night-lit shophouses (*ruko*), 241 residential houses, 68 streetlamps, and 978 tropical trees framing the city.
-- **Procedural PBR Textures, Sky IBL & UnrealBloom Post-Processing**: Zero-CDN canvas-generated PBR maps (grained asphalt, stone plaza paving, terracotta clay roof tiles, weathered colonial plaster, mowed stadium pitch, riveted steel bump, and multi-story shophouse window facades with individual lit night windows), dynamic `PMREMGenerator` sky reflections, drifting procedural clouds & night starfield, multi-bridge river night reflections (Ampera, Musi IV & Kemaro), and mood-tuned `UnrealBloomPass`.
-- **Interactive Controls**:
-  - Orbit (`left-drag`), zoom (`scroll`), and pan (`right-drag`).
+---
+
+## Key Features
+
+- **Real-World Geospatial Stack (Zero API Keys)**:
+  - **Esri World Imagery** high-resolution aerial satellite basemap
+  - **OpenFreeMap / OpenStreetMap** real-time vector tiles & 3D building extrusions (`Gedung 3D` toggle)
+  - **AWS Terrarium** 3D elevation terrain + atmospheric sky & horizon fog
+  - **Custom MapLibre v6 Three.js 3D WebGL Layer** anchoring true-scale Ampera Bridge (`66m` twin towers), Musi IV Cable-Stayed Bridge (`58m` pylons), and Kemaro Island 9-Story Pagoda (`45m`) at exact real-world WGS84 coordinates & compass bearings
+- **Offline Stylized PBR Diorama Mode**:
+  - 100% procedural canvas PBR textures (grained asphalt, stone plaza paving, terracotta roof tiles, weathered colonial plaster, mowed stadium turf, multi-story shophouse facades with glowing night windows), dynamic `PMREMGenerator` sky IBL, drifting clouds & night starfield, animated river/road/LRT traffic, and mood-tuned `UnrealBloomPass`.
+- **Unified Interactive Controls**:
+  - **1-Click Mode Switcher**: `Satelit 3D` ↔ `Diorama` (or direct URL `?mode=satellite` / `?mode=diorama`).
   - **10 Camera Presets**: `Overview`, `Ampera`, `Bundaran & Masjid`, `Pasar 16 Ilir`, `Kuto Besak`, `Walikota & KI`, `Kampung Kapitan`, `Jakabaring`, `Jembatan Musi IV`, and `Pulau Kemaro`.
-  - **3 Lighting Modes**: Daylight (`Siang`), Sunset (`Senja`), and Night (`Malam`).
-  - **Clickable 3D Labels & Info Card**: Click any floating 3D landmark pin to smoothly fly the camera there, toggle pins with `Label 3D`, or expand/collapse the info panel.
+  - **3 Lighting Moods**: Daylight (`Siang`), Sunset (`Senja`), and Night (`Malam`).
+  - **Clickable Landmark Pins & Info Panel**: Toggle floating pins (`Label 3D`) or OSM 3D extrusions (`Gedung 3D`).
 
 ## Prerequisites
 
@@ -67,27 +82,21 @@ An interactive procedural 3D visualization of **Palembang, South Sumatra, Indone
    ```bash
    npm run dev
    ```
-   Open the local URL printed by Vite (default: `http://localhost:5173`).
+   Open `http://localhost:5173` (defaults to **Real Satellite 3D**; use `?mode=diorama` or the top toggle for the offline Diorama).
 
 3. **Build & preview production bundle:**
    ```bash
    npm run build
    npm run preview
    ```
-   Open `http://127.0.0.1:4173` in a WebGL-enabled browser (Chrome, Safari, or Firefox).
+   Open `http://127.0.0.1:4173` in a WebGL-enabled browser.
 
-4. **Run automated headless WebGL2 visual verification** (optional QA):
+4. **Automated Headless WebGL2 Visual QA** (optional):
    ```bash
-   npm run verify
+   npm run verify:satellite   # verifies Real Satellite 3D mode (9 PNG captures)
+   npm run verify             # verifies Offline PBR Diorama mode (13 PNG captures)
    ```
-   [`scripts/verify.mjs`](./scripts/verify.mjs) launches `vite preview` on port `4179`, opens headless Chromium (`ANGLE SwiftShader`), verifies `0` console/page errors, exercises all 10 camera presets and lighting modes, checks canvas pixel diversity and mobile HUD bounds (`390×844`), and writes fresh PNG captures into `artifacts/`. *(Requires Playwright and headless Chromium installed locally.)*
-
-## Prototype Scope & Limitations
-
-- **Compressed Diorama Scale**: Relative geographic orientation is preserved (*Seberang Ilir* north `-Z`, *Seberang Ulu* south `+Z`, *Musi River* flowing west `-X` to east `+X`), while longitudinal distances are intentionally compressed (in reality Benteng Kuto Besak lies ~0.6 km west of Ampera and Kemaro Island ~6 km downstream to the east) so all major landmarks remain legible in a single interactive panorama.
-- **100% Procedural Stylized Geometry**: Every landmark, bridge, vessel, and urban block is constructed procedurally with Three.js primitives and custom shaders rather than photogrammetry, BIM models, or real-world GIS building extrusions.
-- **Offline & Synthetic Traffic**: No external GIS tile streaming (OSM, DEMNAS, or 3D Tiles) or live AIS/LRT telemetry APIs are connected; river vessels, road traffic, and LRT movement are deterministic procedural animations.
 
 ## Feasibility & Engineering Report
 
-See [`ANALISIS_PALEMBANG_3D.md`](./ANALISIS_PALEMBANG_3D.md) (written in Indonesian) for an in-depth technical analysis covering 3-tier city-scale feasibility (Stylized vs. GIS OSM+DEMNAS vs. Digital Twin), multi-agent orchestration vs. alternative execution patterns, phase-by-phase effort & token estimates, AI model recommendations, assumption stress-testing, and a risk register.
+See [`ANALISIS_PALEMBANG_3D.md`](./ANALISIS_PALEMBANG_3D.md) (written in Indonesian) for an in-depth technical analysis covering 3-tier city-scale feasibility, multi-agent orchestration vs. alternative execution patterns, phase-by-phase effort & token estimates, AI model recommendations, assumption stress-testing, and a risk register.

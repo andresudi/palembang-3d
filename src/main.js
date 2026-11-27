@@ -15,6 +15,7 @@ import { createExtraLandmarks } from './scene/landmarksExtra.js';
 import { createUrbanFabric } from './scene/urbanFabric.js';
 import { CAMERA_PRESETS } from './ui/landmarks.js';
 import { createHud } from './ui/hud.js';
+import { mountRealPalembangMap } from './satellite/realPalembangMap.js';
 
 const rootEl = document.getElementById('app');
 
@@ -22,14 +23,16 @@ function showWebGLFallback(reason) {
   rootEl.innerHTML = `
     <div class="webgl-fallback" role="alert">
       <h2>Konteks WebGL tidak tersedia</h2>
-      <p>Peramban atau lingkungan grafis Anda tidak berhasil menginisialisasi WebGL untuk merender diorama 3D Kota Palembang.</p>
+      <p>Peramban atau lingkungan grafis Anda tidak berhasil menginisialisasi WebGL untuk merender visualisasi 3D Kota Palembang.</p>
       <p class="fallback-detail">Detail teknis: ${String(reason || 'WebGL context creation failed')}</p>
       <p>Coba aktifkan akselerasi perangkat keras di pengaturan peramban atau jalankan dengan Chrome/Safari versi terbaru.</p>
     </div>
   `;
 }
 
-function init() {
+function mountDiorama({ onSwitchMode }) {
+  rootEl.innerHTML = '';
+
   let renderer;
   try {
     renderer = new THREE.WebGLRenderer({
@@ -40,13 +43,13 @@ function init() {
   } catch (err) {
     console.warn('WebGL initialization failed:', err?.message || err);
     showWebGLFallback(err?.message || err);
-    return;
+    return () => {};
   }
 
   if (!renderer || !renderer.getContext()) {
     console.warn('WebGL context returned null');
     showWebGLFallback('WebGL context returned null');
-    return;
+    return () => {};
   }
 
   const width = rootEl.clientWidth || window.innerWidth;
@@ -66,7 +69,6 @@ function init() {
   rootEl.appendChild(canvasWrap);
 
   const scene = new THREE.Scene();
-
   const camera = new THREE.PerspectiveCamera(44, width / height, 1.5, 1600);
   const initialPreset = CAMERA_PRESETS[0];
   camera.position.set(...initialPreset.cameraPos);
@@ -117,13 +119,11 @@ function init() {
     }
   });
 
-  // Count meshes once scene is assembled
   let meshCount = 0;
   scene.traverse((obj) => {
     if (obj.isMesh) meshCount += 1;
   });
 
-  // Camera tween state
   let tweenState = null;
   controls.addEventListener('start', () => {
     tweenState = null;
@@ -159,9 +159,11 @@ function init() {
     onSelectPreset: selectPreset,
     onSelectLighting: selectLighting,
     onToggleLabels: toggleLabels,
+    onSwitchMode,
   });
 
-  // Resize handling
+  rootEl.dataset.mode = 'diorama';
+
   function handleResize() {
     const w = rootEl.clientWidth || window.innerWidth;
     const h = rootEl.clientHeight || window.innerHeight;
@@ -172,7 +174,6 @@ function init() {
   }
   window.addEventListener('resize', handleResize);
 
-  // WebGL context metadata for read-only telemetry
   const gl = renderer.getContext();
   const debugExt = gl.getExtension('WEBGL_debug_renderer_info');
   const webglRendererStr = debugExt
@@ -186,10 +187,11 @@ function init() {
 
   Object.defineProperty(window, '__PALEMBANG_3D__', {
     enumerable: true,
-    configurable: false,
+    configurable: true,
     get() {
       const hudState = hud.getState();
       return Object.freeze({
+        mode: 'diorama',
         ready: isReady,
         preset: hudState.activePreset,
         lighting: hudState.activeLighting,
@@ -214,9 +216,12 @@ function init() {
   });
 
   const clock = new THREE.Clock();
+  let rafId = 0;
+  let disposed = false;
 
   function animate() {
-    requestAnimationFrame(animate);
+    if (disposed) return;
+    rafId = requestAnimationFrame(animate);
     const delta = Math.min(clock.getDelta(), 0.05);
     const elapsed = clock.elapsedTime;
 
@@ -257,6 +262,41 @@ function init() {
   }
 
   animate();
+
+  return function cleanup() {
+    disposed = true;
+    cancelAnimationFrame(rafId);
+    window.removeEventListener('resize', handleResize);
+    controls.dispose();
+    composer.dispose();
+    renderer.dispose();
+  };
 }
 
-init();
+let activeCleanup = null;
+
+function switchMode(mode) {
+  const next = mode === 'diorama' ? 'diorama' : 'satellite';
+  if (activeCleanup) {
+    activeCleanup();
+    activeCleanup = null;
+  }
+  rootEl.dataset.ready = 'false';
+
+  const url = new URL(window.location.href);
+  url.searchParams.set('mode', next);
+  window.history.replaceState({}, '', url.toString());
+
+  if (next === 'diorama') {
+    activeCleanup = mountDiorama({ onSwitchMode: switchMode });
+  } else {
+    activeCleanup = mountRealPalembangMap({
+      rootEl,
+      onSwitchMode: switchMode,
+      showWebGLFallback,
+    });
+  }
+}
+
+const initialParam = new URLSearchParams(window.location.search).get('mode');
+switchMode(initialParam === 'diorama' ? 'diorama' : 'satellite');
