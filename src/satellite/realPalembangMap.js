@@ -202,8 +202,12 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       zoom: initial.zoom,
       pitch: initial.pitch,
       bearing: initial.bearing,
+      maxBounds: [
+        [104.725, -3.040],
+        [104.835, -2.962],
+      ],
       maxPitch: 78,
-      minZoom: 11.5,
+      minZoom: 13.8,
       maxZoom: 18.8,
       antialias: true,
       attributionControl: false,

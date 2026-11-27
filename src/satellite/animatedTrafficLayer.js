@@ -7,6 +7,46 @@ import { HERO_BRIDGE_SPECS } from './heroLandmarksLayer.js';
 const ANCHOR_LNGLAT = [104.76340, -2.99194];
 const CORE_CENTER = [104.7634, -2.9915];
 
+// Curated Palembang landmark corridor bounds (matches MapLibre maxBounds 1:1 with Diorama scope)
+const CORRIDOR_BOUNDS = {
+  minLng: 104.725,
+  maxLng: 104.835,
+  minLat: -3.040,
+  maxLat: -2.962,
+};
+
+// Real-world GPS coordinates for 1:1 Diorama landmark micro-animations
+const BAM_FOUNTAIN_LNGLAT = [104.76118, -2.98816];
+const BKB_FLAG_LNGLAT = [104.76000, -2.99242];
+const JAKABARING_CENTER_LNGLAT = [104.78910, -3.02150];
+// Synthetic access boulevard linking Jl. Gubernur H. Bastari straight into Gelora Sriwijaya Jakabaring plaza
+const JAKABARING_BOULEVARD = [
+  [104.78485, -3.02210],
+  [104.78590, -3.02165],
+  [104.78725, -3.02110],
+  [104.78785, -3.02095],
+  [104.78830, -3.02120],
+  [104.78820, -3.02175],
+  [104.78745, -3.02180],
+  [104.78605, -3.02195],
+  [104.78485, -3.02210],
+];
+// North & south shipping channels hugging Pulau Kemaro jetties
+const KEMARO_NORTH_CHANNEL = [
+  [104.8080, -2.9802],
+  [104.8108, -2.9786],
+  [104.8136, -2.9776],
+  [104.8165, -2.9774],
+  [104.8195, -2.9778],
+];
+const KEMARO_SOUTH_CHANNEL = [
+  [104.8092, -2.9824],
+  [104.8118, -2.9815],
+  [104.8142, -2.9811],
+  [104.8168, -2.9812],
+  [104.8198, -2.9822],
+];
+
 // Deterministic PRNG so traffic layout is rich, natural, and reproducible across sessions
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -219,6 +259,14 @@ function buildRoadGraph(anchor, meterScale) {
     const endDirZ = (lastB.z - lastA.z) / lLen;
 
     const midNode = nodes[nodeIds[nodeIds.length >> 1]];
+    if (
+      midNode.lng < CORRIDOR_BOUNDS.minLng ||
+      midNode.lng > CORRIDOR_BOUNDS.maxLng ||
+      midNode.lat < CORRIDOR_BOUNDS.minLat ||
+      midNode.lat > CORRIDOR_BOUNDS.maxLat
+    ) {
+      return;
+    }
     const distFromCore = Math.hypot(midNode.lng - CORE_CENTER[0], midNode.lat - CORE_CENTER[1]);
 
     const id = dirEdges.length;
@@ -236,6 +284,8 @@ function buildRoadGraph(anchor, meterScale) {
       startDirZ,
       endDirX,
       endDirZ,
+      midX: midNode.x,
+      midZ: midNode.z,
       distFromCore,
     });
     if (!outgoing.has(nodeIds[0])) outgoing.set(nodeIds[0], []);
@@ -252,6 +302,16 @@ function buildRoadGraph(anchor, meterScale) {
       addDirEdge(cls, flags, ids.slice().reverse(), true);
     }
   }
+
+  // Add Jakabaring Sport City entrance boulevard loop so Jakabaring Stadium plaza always has smooth traffic
+  const jscIds = JAKABARING_BOULEVARD.map(([lng, lat]) => {
+    const p = projectToLocal(anchor, meterScale, lng, lat);
+    const id = nodes.length;
+    nodes.push({ x: p.x, z: p.z, lng, lat, elev: 0, elevCached: false });
+    return id;
+  });
+  addDirEdge(1, 1, jscIds, false);
+  addDirEdge(1, 1, jscIds.slice().reverse(), false);
 
   return { nodes, dirEdges, outgoing };
 }
@@ -428,15 +488,22 @@ export function createAnimatedTrafficLayer() {
   const bridges = prepareHeroBridges(anchor, meterScale);
   const graph = buildRoadGraph(anchor, meterScale);
 
-  // Real LRT main line (DJKA/Jakabaring <-> Ampera <-> Cinde <-> Bandara SMB II)
-  const lrtPoly = buildPolyline(anchor, meterScale, pathData.lrt[0]);
-  // Real Sungai Musi urban Palembang corridor (from Gandus/Kertapati past BKB, Ampera, Musi IV, Pulau Kemaro)
-  const riverPoly = buildPolyline(anchor, meterScale, pathData.river[0], {
-    minLng: 104.722,
-    maxLng: 104.838,
-    minLat: -3.025,
-    maxLat: -2.960,
+  // Real LRT main line clipped tightly to curated corridor (DJKA/Jakabaring <-> Ampera <-> Cinde <-> Demang)
+  const lrtPoly = buildPolyline(anchor, meterScale, pathData.lrt[0], {
+    minLng: 104.730,
+    maxLng: 104.805,
+    minLat: -3.035,
+    maxLat: -2.955,
   });
+  // Real Sungai Musi curated Palembang corridor (Kertapati/BKB <-> Ampera <-> Musi IV <-> Pulau Kemaro)
+  const riverPoly = buildPolyline(anchor, meterScale, pathData.river[0], {
+    minLng: 104.738,
+    maxLng: 104.832,
+    minLat: -3.018,
+    maxLat: -2.968,
+  });
+  const kemaroNorthPoly = buildPolyline(anchor, meterScale, KEMARO_NORTH_CHANNEL.flat());
+  const kemaroSouthPoly = buildPolyline(anchor, meterScale, KEMARO_SOUTH_CHANNEL.flat());
 
   // --- Shared Materials ---
   const wakeTex = createWakeTexture();
@@ -548,7 +615,7 @@ export function createAnimatedTrafficLayer() {
     return spawnCandidates[lo].edge;
   }
 
-  const CITY_VEHICLE_COUNT = 280;
+  const CITY_VEHICLE_COUNT = 380;
   const BRIDGE_VEHICLE_COUNT = 40;
   const TOTAL_VEHICLES = CITY_VEHICLE_COUNT + BRIDGE_VEHICLE_COUNT;
   const vehicles = [];
@@ -618,23 +685,20 @@ export function createAnimatedTrafficLayer() {
   }
   carBodyInst.instanceColor.needsUpdate = true;
 
-  // --- 3. Animated South Sumatra LRT Trains (6 three-car articulated trainsets = 18 cars) ---
-  const LRT_TRAIN_COUNT = 6;
+  // --- 3. Animated South Sumatra LRT Trains (8 three-car articulated trainsets = 24 cars) ---
+  const LRT_TRAIN_COUNT = 8;
   const CARS_PER_TRAIN = 3;
   const TOTAL_LRT_CARS = LRT_TRAIN_COUNT * CARS_PER_TRAIN;
   const lrtTrains = [];
-  // Keep 4 trains concentrated in the showcase central corridor (DJKA <-> Ampera <-> Demang) and 2 full-line
-  const centralEndDist = Math.min(lrtPoly.total, 9500);
   for (let i = 0; i < LRT_TRAIN_COUNT; i++) {
     const dir = i % 2 === 0 ? 1 : -1;
-    const isCentral = i < 4;
-    const maxDist = isCentral ? centralEndDist : lrtPoly.total - 200;
-    const minDist = 150;
+    const minDist = 80;
+    const maxDist = Math.max(200, lrtPoly.total - 80);
     lrtTrains.push({
       dir,
       minDist,
       maxDist,
-      dist: minDist + ((i + 0.35) / LRT_TRAIN_COUNT) * (maxDist - minDist),
+      dist: minDist + ((i + 0.25) / LRT_TRAIN_COUNT) * (maxDist - minDist),
       speed: 17.5 + (i % 2) * 2.0, // ~65 km/h cruising speed
       trackOffset: dir > 0 ? 1.85 : -1.85,
     });
@@ -650,21 +714,26 @@ export function createAnimatedTrafficLayer() {
     scene.add(inst);
   }
 
-  // --- 4. Animated Sungai Musi Perahu Ketek & Speedboats (28 boats) ---
-  const BOAT_COUNT = 28;
+  // --- 4. Animated Sungai Musi Perahu Ketek & Speedboats (42 boats: 34 corridor + 8 Pulau Kemaro channels) ---
+  const MAIN_BOAT_COUNT = 34;
+  const KEMARO_BOAT_COUNT = 8;
+  const BOAT_COUNT = MAIN_BOAT_COUNT + KEMARO_BOAT_COUNT;
   const BOAT_COLORS = ['#c44536', '#2b7a78', '#1d5b96', '#e09f3e', '#f2efe9', '#6a4c3b', '#2e8b57'];
   const CANOPY_COLORS = ['#1d4ed8', '#b91c1c', '#f59e0b', '#e2e8f0', '#0f766e', '#7c2d12'];
   // Lateral offsets chosen to pass cleanly clear of Ampera's ±37.5m piers
   const BOAT_LANES = [-22, -12, 12, 22, -62, 62, -85, 85];
   const boats = [];
   for (let i = 0; i < BOAT_COUNT; i++) {
+    const isKemaro = i >= MAIN_BOAT_COUNT;
+    const poly = isKemaro ? (i % 2 === 0 ? kemaroNorthPoly : kemaroSouthPoly) : riverPoly;
     const dir = i % 2 === 0 ? 1 : -1;
     const isSpeedboat = i % 4 === 0;
     boats.push({
+      poly,
       dir,
-      dist: (i / BOAT_COUNT) * riverPoly.total + rand() * 180,
+      dist: ((isKemaro ? i - MAIN_BOAT_COUNT : i) / (isKemaro ? KEMARO_BOAT_COUNT : MAIN_BOAT_COUNT)) * poly.total + rand() * 120,
       speed: isSpeedboat ? 9.5 + rand() * 3.5 : 4.2 + rand() * 2.2,
-      laneOffset: BOAT_LANES[i % BOAT_LANES.length] + (rand() - 0.5) * 6,
+      laneOffset: isKemaro ? (rand() - 0.5) * 40 : BOAT_LANES[i % BOAT_LANES.length] + (rand() - 0.5) * 6,
       phase: rand() * Math.PI * 2,
       len: isSpeedboat ? 11.5 : 10.2,
       wid: isSpeedboat ? 3.2 : 2.7,
@@ -697,8 +766,8 @@ export function createAnimatedTrafficLayer() {
   boatHullInst.instanceColor.needsUpdate = true;
   boatCanopyInst.instanceColor.needsUpdate = true;
 
-  // --- 5. Animated Coal Barges (Tongkang Batu Bara) + Tugboats (5 convoys) ---
-  const BARGE_COUNT = 5;
+  // --- 5. Animated Coal Barges (Tongkang Batu Bara) + Tugboats (6 convoys) ---
+  const BARGE_COUNT = 6;
   const barges = [];
   for (let i = 0; i < BARGE_COUNT; i++) {
     const dir = i % 2 === 0 ? 1 : -1;
@@ -723,6 +792,95 @@ export function createAnimatedTrafficLayer() {
     scene.add(inst);
   }
 
+  // --- 6. 1:1 Diorama Landmark Micro-Animations ---
+  // 6a. Bundaran Air Mancur Animated Water Fountain (36 rising & arcing droplets)
+  const bamPos = projectToLocal(anchor, meterScale, BAM_FOUNTAIN_LNGLAT[0], BAM_FOUNTAIN_LNGLAT[1]);
+  const FOUNTAIN_COUNT = 36;
+  const fountainMat = new THREE.MeshStandardMaterial({
+    color: '#d8f4ff',
+    emissive: '#5ac8ff',
+    emissiveIntensity: 0.35,
+    transparent: true,
+    opacity: 0.88,
+    roughness: 0.15,
+  });
+  const fountainPool = new THREE.Mesh(
+    new THREE.CylinderGeometry(11.5, 12.2, 1.1, 24),
+    new THREE.MeshStandardMaterial({ color: '#1b6f8a', roughness: 0.2, metalness: 0.3 })
+  );
+  fountainPool.frustumCulled = false;
+  scene.add(fountainPool);
+  const fountainInst = new THREE.InstancedMesh(new THREE.SphereGeometry(0.65, 6, 6), fountainMat, FOUNTAIN_COUNT);
+  fountainInst.frustumCulled = false;
+  scene.add(fountainInst);
+
+  // 6b. Benteng Kuto Besak Waving Merah-Putih Flag
+  const bkbPos = projectToLocal(anchor, meterScale, BKB_FLAG_LNGLAT[0], BKB_FLAG_LNGLAT[1]);
+  const bkbFlagGroup = new THREE.Group();
+  const flagPole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.32, 0.45, 28, 8),
+    new THREE.MeshStandardMaterial({ color: '#e5e7eb', metalness: 0.6, roughness: 0.3 })
+  );
+  flagPole.position.y = 14;
+  bkbFlagGroup.add(flagPole);
+
+  const FLAG_SEGS = 6;
+  const flagRedSegs = [];
+  const flagWhiteSegs = [];
+  const flagRedMat = new THREE.MeshStandardMaterial({ color: '#dc2626', roughness: 0.55, side: THREE.DoubleSide });
+  const flagWhiteMat = new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.55, side: THREE.DoubleSide });
+  for (let s = 0; s < FLAG_SEGS; s++) {
+    const rMesh = new THREE.Mesh(new THREE.BoxGeometry(1.55, 2.5, 0.16), flagRedMat);
+    const wMesh = new THREE.Mesh(new THREE.BoxGeometry(1.55, 2.5, 0.16), flagWhiteMat);
+    bkbFlagGroup.add(rMesh, wMesh);
+    flagRedSegs.push(rMesh);
+    flagWhiteSegs.push(wMesh);
+  }
+  bkbFlagGroup.frustumCulled = false;
+  scene.add(bkbFlagGroup);
+
+  // 6c. Gelora Sriwijaya Jakabaring 4 Stadium Floodlight Towers (blaze at Senja & Malam)
+  const jscPos = projectToLocal(anchor, meterScale, JAKABARING_CENTER_LNGLAT[0], JAKABARING_CENTER_LNGLAT[1]);
+  const jscGroup = new THREE.Group();
+  const floodLampMat = new THREE.MeshStandardMaterial({
+    color: '#fff8e0',
+    emissive: '#ffe9a8',
+    emissiveIntensity: 0.3,
+    roughness: 0.2,
+  });
+  const floodMastMat = new THREE.MeshStandardMaterial({ color: '#d4dae0', metalness: 0.5, roughness: 0.45 });
+  const floodHaloMat = new THREE.MeshBasicMaterial({
+    map: headGlowTex,
+    transparent: true,
+    opacity: 0.0,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+  });
+  const floodOffsets = [
+    [-92, -108],
+    [92, -108],
+    [-92, 108],
+    [92, 108],
+  ];
+  for (const [ox, oz] of floodOffsets) {
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.9, 54, 8), floodMastMat);
+    mast.position.set(ox, 27, oz);
+    jscGroup.add(mast);
+
+    const head = new THREE.Mesh(new THREE.BoxGeometry(11, 5.5, 2.2), floodLampMat);
+    head.position.set(ox, 55, oz);
+    head.lookAt(0, 12, 0);
+    jscGroup.add(head);
+
+    const halo = new THREE.Mesh(new THREE.PlaneGeometry(36, 36), floodHaloMat);
+    halo.position.set(ox * 0.96, 54.5, oz * 0.96);
+    halo.lookAt(0, 20, 0);
+    jscGroup.add(halo);
+  }
+  jscGroup.frustumCulled = false;
+  scene.add(jscGroup);
+
   // --- Runtime State ---
   let renderer = null;
   let camera = null;
@@ -734,6 +892,62 @@ export function createAnimatedTrafficLayer() {
   let frameTick = 0;
   let lastElevRefresh = -10;
   let viaductReady = false;
+  let bamBaseElev = 0;
+  let bkbBaseElev = 0;
+  let jscBaseElev = 0;
+
+  // Dynamic viewport-aware road focus state (guarantees dense moving cars wherever the camera zooms!)
+  let camFocusX = 0;
+  let camFocusZ = 0;
+  let camFocusRadius = 1600;
+  let lastCamCheckX = 1e9;
+  let lastCamCheckZ = 1e9;
+  let lastCamCheckZoom = -1;
+  let viewportEdges = [];
+
+  function refreshViewportEdges() {
+    if (!mapRef) return;
+    const c = mapRef.getCenter();
+    const zoom = mapRef.getZoom();
+    const localC = projectToLocal(anchor, meterScale, c.lng, c.lat);
+    if (
+      Math.hypot(localC.x - lastCamCheckX, localC.z - lastCamCheckZ) < 110 &&
+      Math.abs(zoom - lastCamCheckZoom) < 0.35 &&
+      viewportEdges.length > 0
+    ) {
+      return;
+    }
+    lastCamCheckX = localC.x;
+    lastCamCheckZ = localC.z;
+    lastCamCheckZoom = zoom;
+    camFocusX = localC.x;
+    camFocusZ = localC.z;
+    // Scale focus radius cleanly with zoom level (tight dense traffic when zoomed in, wide city spread when zoomed out)
+    camFocusRadius = Math.max(680, Math.min(3600, 1150 * Math.pow(2, 16 - zoom)));
+
+    const list = [];
+    for (const e of graph.dirEdges) {
+      if (e.total < 20) continue;
+      const d = Math.hypot(e.midX - camFocusX, e.midZ - camFocusZ);
+      if (d <= camFocusRadius) list.push(e);
+    }
+    // Fallback to wider radius if camera sits directly over open water or sparse park
+    if (list.length < 6) {
+      for (const e of graph.dirEdges) {
+        if (e.total < 20) continue;
+        const d = Math.hypot(e.midX - camFocusX, e.midZ - camFocusZ);
+        if (d <= camFocusRadius * 2.2) list.push(e);
+      }
+    }
+    viewportEdges = list;
+  }
+
+  function pickViewportEdge() {
+    if (viewportEdges.length > 0) {
+      return viewportEdges[Math.floor(rand() * viewportEdges.length)];
+    }
+    return pickWeightedEdge();
+  }
 
   const rotX = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
   const anchorMatrix = new THREE.Matrix4()
@@ -754,6 +968,12 @@ export function createAnimatedTrafficLayer() {
     for (const b of bridges) {
       b.baseElev = queryTerrain(b.lngLat[0], b.lngLat[1]);
     }
+    bamBaseElev = queryTerrain(BAM_FOUNTAIN_LNGLAT[0], BAM_FOUNTAIN_LNGLAT[1]);
+    bkbBaseElev = queryTerrain(BKB_FLAG_LNGLAT[0], BKB_FLAG_LNGLAT[1]);
+    jscBaseElev = queryTerrain(JAKABARING_CENTER_LNGLAT[0], JAKABARING_CENTER_LNGLAT[1]);
+    fountainPool.position.set(bamPos.x, bamBaseElev + 0.45, bamPos.z);
+    bkbFlagGroup.position.set(bkbPos.x, bkbBaseElev + 0.4, bkbPos.z);
+    jscGroup.position.set(jscPos.x, jscBaseElev, jscPos.z);
     viaduct.updateElevations(queryTerrain, bridges[0].baseElev);
     viaductReady = true;
   }
@@ -787,6 +1007,8 @@ export function createAnimatedTrafficLayer() {
     simTime += dt;
     frameTick += 1;
 
+    refreshViewportEdges();
+
     // Periodically refresh terrain elevations as DEM tiles stream in (every ~1.5s)
     if (!viaductReady || simTime - lastElevRefresh > 1.5) {
       lastElevRefresh = simTime;
@@ -800,6 +1022,9 @@ export function createAnimatedTrafficLayer() {
     const amperaBaseElev = bridges[0].baseElev;
     const isDark = lightingMode === 'malam' || lightingMode === 'senja';
     const glowScale = lightingMode === 'malam' ? 1.0 : lightingMode === 'senja' ? 0.55 : 0.0;
+    const recycleLimit = camFocusRadius * 1.18;
+    // Budget recycling per frame so panning feels instantaneous with zero frame spike
+    let recycledThisFrame = 0;
 
     // 1) Update Road Vehicles
     for (let i = 0; i < TOTAL_VEHICLES; i++) {
@@ -830,6 +1055,22 @@ export function createAnimatedTrafficLayer() {
           slope = dYdLocalZ * v.dir;
         }
       } else {
+        // Keep a density-appropriate share of the city fleet inside the active camera viewport
+        const viewportQuota = Math.min(
+          Math.floor(CITY_VEHICLE_COUNT * 0.78),
+          Math.max(55, viewportEdges.length * 4)
+        );
+        if (
+          i < viewportQuota &&
+          viewportEdges.length > 0 &&
+          recycledThisFrame < 48 &&
+          Math.hypot(v.edge.midX - camFocusX, v.edge.midZ - camFocusZ) > recycleLimit
+        ) {
+          v.edge = pickViewportEdge();
+          v.dist = rand() * v.edge.total;
+          recycledThisFrame += 1;
+        }
+
         v.dist += v.speed * dt;
         let safety = 0;
         while (v.dist >= v.edge.total && safety++ < 4) {
@@ -987,15 +1228,16 @@ export function createAnimatedTrafficLayer() {
     lrtHeadInst.instanceMatrix.needsUpdate = true;
     lrtTailInst.instanceMatrix.needsUpdate = true;
 
-    // 3) Update Sungai Musi Perahu Ketek & Speedboats
+    // 3) Update Sungai Musi Perahu Ketek & Speedboats (main channel + Pulau Kemaro channels)
     const waterBaseY = Math.max(0.2, amperaBaseElev * 0.25) + 0.55;
     for (let i = 0; i < BOAT_COUNT; i++) {
       const b = boats[i];
+      const poly = b.poly;
       b.dist += b.dir * b.speed * dt;
-      if (b.dist > riverPoly.total) b.dist -= riverPoly.total;
-      if (b.dist < 0) b.dist += riverPoly.total;
+      if (b.dist > poly.total) b.dist -= poly.total;
+      if (b.dist < 0) b.dist += poly.total;
 
-      const s = samplePolyline(riverPoly, b.dist);
+      const s = samplePolyline(poly, b.dist);
       const fx = s.fx * b.dir;
       const fz = s.fz * b.dir;
       const lx = s.fz;
@@ -1104,6 +1346,39 @@ export function createAnimatedTrafficLayer() {
     tugCabinInst.instanceMatrix.needsUpdate = true;
     tugLampInst.instanceMatrix.needsUpdate = true;
     bargeWakeInst.instanceMatrix.needsUpdate = true;
+
+    // 5) Update Bundaran Air Mancur Animated Water Fountain
+    for (let i = 0; i < FOUNTAIN_COUNT; i++) {
+      const isCenterJet = i < 10;
+      const cycle = (simTime * (isCenterJet ? 0.95 : 0.78) + i / FOUNTAIN_COUNT) % 1;
+      const angle = (i * 2.39996) + simTime * 0.35;
+      const maxR = isCenterJet ? 2.4 : 8.8;
+      const maxH = isCenterJet ? 11.5 : 6.8;
+      const r = maxR * cycle;
+      const h = 4 * maxH * cycle * (1 - cycle);
+      const dropScale = 0.55 + Math.sin(cycle * Math.PI) * 0.85;
+      dummy.position.set(
+        bamPos.x + Math.cos(angle) * r,
+        bamBaseElev + 1.2 + h,
+        bamPos.z + Math.sin(angle) * r
+      );
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(dropScale, dropScale * 1.45, dropScale);
+      dummy.updateMatrix();
+      fountainInst.setMatrixAt(i, dummy.matrix);
+    }
+    fountainInst.instanceMatrix.needsUpdate = true;
+
+    // 6) Update Benteng Kuto Besak Waving Merah-Putih Flag
+    for (let s = 0; s < FLAG_SEGS; s++) {
+      const dist = 0.95 + s * 1.48;
+      const wave = Math.sin(simTime * 5.2 - s * 0.65) * (0.18 + s * 0.16);
+      const rotY = Math.cos(simTime * 5.2 - s * 0.65) * 0.15;
+      flagRedSegs[s].position.set(dist, 26.2, wave);
+      flagRedSegs[s].rotation.y = rotY;
+      flagWhiteSegs[s].position.set(dist, 23.7, wave);
+      flagWhiteSegs[s].rotation.y = rotY;
+    }
   }
 
   function setLightingMode(mode) {
@@ -1122,6 +1397,11 @@ export function createAnimatedTrafficLayer() {
     mats.viaductConcrete.color.set(isNight ? '#3d4552' : isSunset ? '#b89a88' : '#c9c4ba');
     mats.viaductTrim.color.set(isNight ? '#515c6e' : isSunset ? '#cea992' : '#dfd9ce');
     mats.viaductPier.color.set(isNight ? '#323945' : isSunset ? '#9e8474' : '#b4afa4');
+
+    fountainMat.emissive.set(isNight ? '#ffd27a' : isSunset ? '#ffad5a' : '#5ac8ff');
+    fountainMat.emissiveIntensity = isNight ? 2.4 : isSunset ? 1.35 : 0.35;
+    floodLampMat.emissiveIntensity = isNight ? 4.2 : isSunset ? 2.2 : 0.25;
+    floodHaloMat.opacity = isNight ? 0.78 : isSunset ? 0.35 : 0.0;
 
     if (isNight) {
       sun.color.set('#8db4eb');
