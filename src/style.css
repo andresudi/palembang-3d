@@ -757,6 +757,15 @@ button:focus-visible {
 .banner-btn.drone-key {
   padding: 4px 8px;
   min-width: 26px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.banner-btn.drone-key.pressed {
+  background: var(--accent-gold);
+  color: #10161c;
 }
 
 .banner-btn.banner-stop {
@@ -1815,6 +1824,131 @@ button:focus-visible {
   }
 }
 
+/* === v3.6 Mobile 2-Stage Peek Bar & Virtual Analog Boat Joystick === */
+.info-peek-bar {
+  display: none;
+}
+
+.boat-touch-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 22;
+}
+
+.boat-touch-controls.hidden {
+  display: none;
+}
+
+.boat-joystick {
+  position: absolute;
+  left: 18px;
+  bottom: 24px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(14, 21, 27, 0.62);
+  border: 1.5px solid rgba(216, 173, 92, 0.55);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), inset 0 0 18px rgba(216, 173, 92, 0.14);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.boat-joystick.active {
+  border-color: #f6d586;
+  background: rgba(14, 21, 27, 0.78);
+}
+
+.joy-dir {
+  position: absolute;
+  font-size: 0.62rem;
+  color: rgba(244, 239, 230, 0.42);
+  pointer-events: none;
+}
+.joy-n { top: 8px; left: 50%; transform: translateX(-50%); }
+.joy-s { bottom: 8px; left: 50%; transform: translateX(-50%); }
+.joy-w { left: 9px; top: 50%; transform: translateY(-50%); }
+.joy-e { right: 9px; top: 50%; transform: translateY(-50%); }
+
+.boat-joystick-knob {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f7d98b, #c78d2e);
+  border: 2px solid rgba(255, 250, 235, 0.85);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.boat-action-cluster {
+  position: absolute;
+  right: 18px;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.boat-action-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  background: rgba(14, 21, 27, 0.76);
+  border: 1.5px solid rgba(216, 173, 92, 0.58);
+  color: var(--ink-primary);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.boat-action-btn span {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.boat-action-btn small {
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--accent-gold);
+}
+
+.boat-action-btn.pressed,
+.boat-action-btn:active {
+  transform: scale(0.94);
+  background: rgba(200, 61, 50, 0.88);
+  border-color: #f6d586;
+}
+
+[data-playable-boat="true"] .preset-dock,
+[data-playable-boat="true"] .info-card,
+[data-playable-boat="true"] .controls-hint {
+  display: none !important;
+}
+
+@media (min-width: 721px) {
+  .boat-touch-controls {
+    display: none;
+  }
+}
+
 .webgl-fallback {
   max-width: 540px;
   margin: 12vh auto 0;
@@ -1868,15 +2002,122 @@ button:focus-visible {
   .info-card.collapsed {
     display: none;
   }
-  .info-card:not(.collapsed) {
+  .info-card.peek {
     top: auto;
-    left: 12px;
-    right: 12px;
-    bottom: 74px;
+    left: 10px;
+    right: 10px;
+    bottom: 72px;
     width: auto;
-    max-height: 38vh;
+    max-height: none;
+    overflow: visible;
+    padding: 8px 10px;
+    border-radius: 12px;
+    z-index: 16;
+  }
+  .info-card.peek .info-peek-bar {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .info-card.peek .info-header,
+  .info-card.peek .info-photo-wrap,
+  .info-card.peek .info-title,
+  .info-card.peek .info-summary,
+  .info-card.peek .info-note,
+  .info-card.peek .info-action-row {
+    display: none;
+  }
+  .info-peek-thumb {
+    width: 42px;
+    height: 42px;
+    border-radius: 7px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid rgba(216, 173, 92, 0.35);
+  }
+  .info-peek-thumb.hidden {
+    display: none;
+  }
+  .info-peek-copy {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+  }
+  .info-peek-title {
+    display: block;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--ink-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .info-peek-sub {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--accent-gold);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+  }
+  .info-peek-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .info-peek-lift {
+    padding: 5px 7px;
+    border-radius: 7px;
+    font-size: 0.74rem;
+    background: rgba(200, 61, 50, 0.88);
+    border: 1px solid rgba(255, 194, 102, 0.55);
+    color: #fff;
+  }
+  .info-peek-lift.hidden {
+    display: none;
+  }
+  .info-peek-lift.active {
+    background: var(--accent-gold);
+    color: #10161c;
+  }
+  .info-peek-expand {
+    padding: 5px 9px;
+    border-radius: 7px;
+    font-size: 0.72rem;
+    font-weight: 650;
+    color: var(--ink-primary);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+  .info-peek-close {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    font-size: 0.74rem;
+    color: var(--ink-muted);
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .info-card:not(.collapsed):not(.peek) {
+    top: auto;
+    left: 10px;
+    right: 10px;
+    bottom: 72px;
+    width: auto;
+    max-height: 40vh;
     overflow-y: auto;
     z-index: 16;
+  }
+  [data-timeline="true"] .info-card.peek,
+  [data-timeline="true"] .info-card:not(.collapsed):not(.peek) {
+    bottom: 132px;
+  }
+  [data-playable-boat="true"] .boat-desktop-pad {
+    display: none;
+  }
+  [data-playable-boat="true"] .radar-widget {
+    display: none;
   }
   .passport-toast {
     top: 112px;
@@ -1925,7 +2166,7 @@ button:focus-visible {
   }
   .explore-drawer,
   .mode-banner {
-    top: 96px;
+    top: 148px;
   }
 }
 

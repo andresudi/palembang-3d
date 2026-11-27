@@ -267,6 +267,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   let buildingsVisible = true;
   let trafficVisible = true;
   let infoExpanded = false;
+  let infoMode = 'collapsed'; // 'collapsed' | 'peek' | 'expanded' (mobile starts in slim 'peek' bar!)
   let isReady = false;
   let isFlying = false;
   let lastShareUrl = '';
@@ -396,10 +397,58 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   topControls.append(modeGroup, lightingGroup, langBtn, shareBtn, audioBtn, helpBtn, exploreBtn);
   topBar.append(brand, topControls);
 
-  // Info Card
+  // Info Card (Desktop side card + Mobile 2-stage Google Maps–style Peek Bar / Expandable Sheet)
   const infoCard = document.createElement('aside');
   infoCard.className = 'info-card collapsed';
   infoCard.setAttribute('aria-live', 'polite');
+
+  const isMobileViewport = () => (rootEl.clientWidth || window.innerWidth) <= 720;
+
+  const infoPeekBar = document.createElement('div');
+  infoPeekBar.className = 'info-peek-bar';
+  infoPeekBar.dataset.infoPeekBar = 'true';
+  infoPeekBar.innerHTML = `
+    <img class="info-peek-thumb hidden" alt="" data-peek-thumb />
+    <div class="info-peek-copy" data-peek-copy>
+      <strong class="info-peek-title" data-peek-title></strong>
+      <small class="info-peek-sub" data-peek-sub></small>
+    </div>
+    <div class="info-peek-actions">
+      <button type="button" class="info-peek-lift hidden" data-peek-lift aria-label="Angkat Jembatan Ampera">⬆️</button>
+      <button type="button" class="info-peek-expand" data-peek-expand>Detail ▴</button>
+      <button type="button" class="info-peek-close" data-peek-close aria-label="Tutup">✕</button>
+    </div>
+  `;
+  const peekThumbEl = infoPeekBar.querySelector('[data-peek-thumb]');
+  const peekCopyEl = infoPeekBar.querySelector('[data-peek-copy]');
+  const peekTitleEl = infoPeekBar.querySelector('[data-peek-title]');
+  const peekSubEl = infoPeekBar.querySelector('[data-peek-sub]');
+  const peekLiftBtn = infoPeekBar.querySelector('[data-peek-lift]');
+  const peekExpandBtn = infoPeekBar.querySelector('[data-peek-expand]');
+  const peekCloseBtn = infoPeekBar.querySelector('[data-peek-close]');
+
+  function setInfoMode(nextMode) {
+    infoMode = nextMode;
+    infoExpanded = nextMode !== 'collapsed';
+    infoCard.classList.toggle('collapsed', nextMode === 'collapsed');
+    infoCard.classList.toggle('peek', nextMode === 'peek');
+    rootEl.dataset.infoMode = nextMode;
+    const en = i18n.getLang() === 'en';
+    if (nextMode === 'expanded' && isMobileViewport()) {
+      infoToggle.textContent = en ? 'Compact ▾' : 'Ringkas ▾';
+    } else {
+      infoToggle.textContent = infoExpanded ? i18n.t('close') : i18n.t('info');
+    }
+    peekExpandBtn.textContent = en ? 'Details ▴' : 'Detail ▴';
+  }
+
+  peekCopyEl.addEventListener('click', () => setInfoMode('expanded'));
+  peekExpandBtn.addEventListener('click', () => setInfoMode('expanded'));
+  peekCloseBtn.addEventListener('click', () => setInfoMode('collapsed'));
+  peekThumbEl.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (currentPhotoData) lightbox.open(currentPhotoData, infoTitle.textContent);
+  });
 
   const infoHeader = document.createElement('div');
   infoHeader.className = 'info-header';
@@ -410,9 +459,13 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   infoToggle.className = 'info-collapse';
   infoToggle.textContent = 'Info';
   infoToggle.addEventListener('click', () => {
-    infoExpanded = !infoExpanded;
-    infoCard.classList.toggle('collapsed', !infoExpanded);
-    infoToggle.textContent = infoExpanded ? 'Tutup' : 'Info';
+    if (isMobileViewport() && infoMode === 'expanded') {
+      setInfoMode('peek');
+    } else if (infoMode === 'collapsed') {
+      setInfoMode(isMobileViewport() ? 'peek' : 'expanded');
+    } else {
+      setInfoMode('collapsed');
+    }
   });
   infoHeader.append(infoZone, infoToggle);
 
@@ -447,7 +500,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   infoGmaps.textContent = 'Buka di Google Maps ↗';
 
   infoActionRow.append(infoLiftBtn, infoGmaps);
-  infoCard.append(infoHeader, infoPhotoBtn, infoTitle, infoBody, infoNote, infoActionRow);
+  infoCard.append(infoPeekBar, infoHeader, infoPhotoBtn, infoTitle, infoBody, infoNote, infoActionRow);
 
   // Bottom Preset Dock
   const presetNav = document.createElement('nav');
@@ -490,9 +543,11 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     infoLiftBtn.textContent = lifted
       ? (en ? '⬇️ Lower Ampera Span' : '⬇️ Turunkan Bentang Ampera')
       : (en ? '⬆️ Lift Ampera Span (1965)' : '⬆️ Angkat Bentang Ampera (1965)');
+    peekLiftBtn.classList.toggle('active', lifted);
+    peekLiftBtn.textContent = lifted ? '⬇️' : '⬆️';
   }
 
-  infoLiftBtn.addEventListener('click', () => {
+  function handleAmperaLiftClick() {
     const lifted = hero3d.toggleAmperaLift();
     syncAmperaLiftBtn();
     const en = i18n.getLang() === 'en';
@@ -501,6 +556,11 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
         ? (en ? '⬆️ Raising Ampera 1965 lift span (+24 m) for tall ship!' : '⬆️ Mengangkat bentang tengah Ampera 1965 (+24 m) untuk kapal layar!')
         : (en ? '⬇️ Lowering Ampera central span back to road deck' : '⬇️ Menurunkan bentang tengah Ampera kembali ke dek jalan')
     );
+  }
+  infoLiftBtn.addEventListener('click', handleAmperaLiftClick);
+  peekLiftBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleAmperaLiftClick();
   });
   hero3d.onLiftChange(syncAmperaLiftBtn);
 
@@ -558,9 +618,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     onUpdate(boatState) {
       rootEl.dataset.playableBoat = String(boatState.active);
       if (boatState.active && infoExpanded) {
-        infoExpanded = false;
-        infoCard.classList.add('collapsed');
-        infoToggle.textContent = i18n.t('info');
+        setInfoMode('collapsed');
       }
       exploreBtn.classList.toggle('has-active-mode', boatState.active || cameraModes.getState().mode !== 'free');
       exploreDrawer?.syncModeBanner(cameraModes.getState(), boatState);
@@ -893,7 +951,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     exploreBtn.querySelector('[data-explore-label]').textContent = i18n.t('explore');
     hint.textContent = i18n.t('hint');
     infoGmaps.textContent = i18n.t('openGmaps');
-    syncInfoCard(activePoiItem, { expand: infoExpanded });
+    syncInfoCard(activePoiItem, { expand: infoExpanded, preserveMode: true });
     exploreDrawer.applyLanguage();
     onboardingHelp.applyLanguage();
     timeline.applyLanguage();
@@ -911,6 +969,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     topBar,
     exploreDrawer.drawerEl,
     exploreDrawer.bannerEl,
+    exploreDrawer.boatTouchEl,
     exploreDrawer.photoBarEl,
     exploreDrawer.toastEl,
     infoCard,
@@ -963,16 +1022,22 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     }
   }
 
-  function syncInfoCard(rawItem, { expand = true } = {}) {
+  function syncInfoCard(rawItem, { expand = true, preserveMode = false } = {}) {
     activePoiItem = rawItem;
     const item = i18n.localizePoi(rawItem);
-    infoExpanded = expand;
-    infoCard.classList.toggle('collapsed', !infoExpanded);
-    infoToggle.textContent = infoExpanded ? i18n.t('close') : i18n.t('info');
-    infoZone.textContent = item.signature ? `${item.signature}` : item.zone;
+    if (!preserveMode) {
+      if (!expand) setInfoMode('collapsed');
+      else setInfoMode(isMobileViewport() ? 'peek' : 'expanded');
+    } else {
+      setInfoMode(infoMode);
+    }
+    const subText = item.signature ? `${item.signature}` : item.zone;
+    infoZone.textContent = subText;
     infoTitle.textContent = item.title;
     infoBody.textContent = item.summary;
     infoNote.textContent = item.note;
+    peekTitleEl.textContent = item.label || item.title;
+    peekSubEl.textContent = subText;
     if (item.center && item.id !== 'overview') {
       infoGmaps.href = `https://www.google.com/maps/search/?api=1&query=${item.center[1]},${item.center[0]}`;
       infoGmaps.classList.remove('hidden');
@@ -981,12 +1046,14 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     }
     const isAmperaCard = item.id === 'ampera' || item.id === 'era-ampera';
     infoLiftBtn.classList.toggle('hidden', !isAmperaCard);
+    peekLiftBtn.classList.toggle('hidden', !isAmperaCard);
     if (isAmperaCard) syncAmperaLiftBtn();
 
     // Async Wikimedia photo fetch (in-memory cached, graceful hide if unavailable)
     const seq = ++photoFetchSeq;
     currentPhotoData = null;
     infoPhotoBtn.classList.add('hidden');
+    peekThumbEl.classList.add('hidden');
     if (item.id && item.id !== 'overview') {
       fetchWikimediaPhoto(item.id).then((photo) => {
         if (seq !== photoFetchSeq || !photo?.thumbUrl) return;
@@ -996,6 +1063,9 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
         infoPhotoCaption.textContent =
           i18n.getLang() === 'en' ? 'Wikimedia · Click to enlarge' : 'Wikimedia · Klik perbesar';
         infoPhotoBtn.classList.remove('hidden');
+        peekThumbEl.src = photo.thumbUrl;
+        peekThumbEl.alt = item.title;
+        peekThumbEl.classList.remove('hidden');
       });
     }
   }
@@ -1122,6 +1192,13 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     isFlying = false;
   });
 
+  // On mobile, tapping open map canvas shrinks an expanded Info Card cleanly back to Peek Bar
+  map.on('click', () => {
+    if (isMobileViewport() && infoMode === 'expanded' && !weatherGis.getMeasureState().active) {
+      setInfoMode('peek');
+    }
+  });
+
   map.on('style.load', () => {
     if (!map.getLayer('palembang-hero-3d')) {
       map.addLayer(hero3d.layer, 'road-labels');
@@ -1203,6 +1280,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       timeline: timeline.getState(),
       amperaLift: hero3d.getAmperaLiftState(),
       heroCount: hero3d.getHeroCount(),
+      infoMode,
       currentPhoto: currentPhotoData ? Object.freeze({ title: currentPhotoData.title, thumbUrl: currentPhotoData.thumbUrl }) : null,
       lightboxOpen: lightbox.isOpen(),
       lastShareUrl,

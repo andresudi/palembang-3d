@@ -155,6 +155,7 @@ export function createExploreDrawer({
         if (playableBoat.getState().active) {
           playableBoat.stop();
         } else {
+          setOpen(false);
           cameraModes.stopAll();
           playableBoat.start();
         }
@@ -168,7 +169,10 @@ export function createExploreDrawer({
       onClick: () => {
         playableBoat.stop();
         if (cameraModes.getState().mode === 'ride-lrt') cameraModes.stopAll();
-        else cameraModes.startRide('lrt');
+        else {
+          if (window.innerWidth <= 720) setOpen(false);
+          cameraModes.startRide('lrt');
+        }
       },
     }),
     makeActionCard({
@@ -180,6 +184,7 @@ export function createExploreDrawer({
         playableBoat.stop();
         if (cameraModes.getState().mode === 'ride-boat') cameraModes.stopAll();
         else {
+          if (window.innerWidth <= 720) setOpen(false);
           cameraModes.startRide('boat');
           ambience?.playBoatHorn(false);
         }
@@ -194,6 +199,7 @@ export function createExploreDrawer({
         playableBoat.stop();
         if (cameraModes.getState().mode === 'ride-barge') cameraModes.stopAll();
         else {
+          if (window.innerWidth <= 720) setOpen(false);
           cameraModes.startRide('barge');
           ambience?.playBoatHorn(true);
         }
@@ -217,7 +223,10 @@ export function createExploreDrawer({
       onClick: () => {
         playableBoat.stop();
         if (cameraModes.getState().mode === 'tour') cameraModes.stopAll();
-        else cameraModes.startTour(1);
+        else {
+          if (window.innerWidth <= 720) setOpen(false);
+          cameraModes.startTour(1);
+        }
       },
     }),
     makeActionCard({
@@ -228,7 +237,10 @@ export function createExploreDrawer({
       onClick: () => {
         playableBoat.stop();
         if (cameraModes.getState().mode === 'drone') cameraModes.stopAll();
-        else cameraModes.startDrone();
+        else {
+          if (window.innerWidth <= 720) setOpen(false);
+          cameraModes.startDrone();
+        }
       },
     })
   );
@@ -383,6 +395,7 @@ export function createExploreDrawer({
       btn.addEventListener('click', () => {
         cameraModes.stopAll();
         playableBoat.stop();
+        if (window.innerWidth <= 720) setOpen(false);
         onSelectPoi(raw);
       });
       poiList.appendChild(btn);
@@ -720,18 +733,189 @@ export function createExploreDrawer({
   }
 
   function bindHold(btn, downFn, upFn) {
+    let active = false;
     const start = (e) => {
       e.preventDefault();
+      e.stopPropagation();
+      if (active) return;
+      active = true;
+      if (e.pointerId !== undefined) {
+        try {
+          btn.setPointerCapture?.(e.pointerId);
+        } catch {}
+      }
+      btn.classList.add('pressed');
       downFn();
     };
+    const end = (e) => {
+      if (!active) return;
+      if (e?.cancelable) e.preventDefault();
+      active = false;
+      btn.classList.remove('pressed');
+      upFn();
+    };
     btn.addEventListener('pointerdown', start);
-    btn.addEventListener('pointerup', upFn);
-    btn.addEventListener('pointerleave', upFn);
-    btn.addEventListener('pointercancel', upFn);
+    btn.addEventListener('pointerup', end);
+    btn.addEventListener('pointercancel', end);
+    btn.addEventListener('touchstart', start, { passive: false });
+    btn.addEventListener('touchend', end, { passive: false });
+    btn.addEventListener('touchcancel', end, { passive: false });
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
   }
+
+  // --- Floating Mobile Virtual Analog Thumb Joystick + Turbo/Horn Controls for Perahu Ketek ---
+  const boatTouchEl = document.createElement('div');
+  boatTouchEl.className = 'boat-touch-controls hidden';
+  boatTouchEl.dataset.boatTouchControls = 'true';
+
+  const joyBase = document.createElement('div');
+  joyBase.className = 'boat-joystick';
+  joyBase.dataset.boatJoystick = 'true';
+  joyBase.setAttribute('aria-label', 'Joystick Perahu Ketek');
+  joyBase.innerHTML = `
+    <span class="joy-dir joy-n" aria-hidden="true">▲</span>
+    <span class="joy-dir joy-s" aria-hidden="true">▼</span>
+    <span class="joy-dir joy-w" aria-hidden="true">◀</span>
+    <span class="joy-dir joy-e" aria-hidden="true">▶</span>
+    <div class="boat-joystick-knob" data-joy-knob></div>
+  `;
+  const joyKnob = joyBase.querySelector('[data-joy-knob]');
+
+  let joyActive = false;
+  let joyPointerId = null;
+  let joyTouchId = null;
+  let joyCenter = { x: 0, y: 0 };
+  const JOY_MAX_R = 40;
+
+  function applyJoystickDelta(clientX, clientY) {
+    const dx = clientX - joyCenter.x;
+    const dy = clientY - joyCenter.y;
+    const dist = Math.hypot(dx, dy);
+    const clamped = Math.min(JOY_MAX_R, dist);
+    const nx = dist > 0.001 ? (dx / dist) * (clamped / JOY_MAX_R) : 0;
+    const ny = dist > 0.001 ? (dy / dist) * (clamped / JOY_MAX_R) : 0;
+    joyKnob.style.transform = `translate(${(nx * JOY_MAX_R).toFixed(1)}px, ${(ny * JOY_MAX_R).toFixed(1)}px)`;
+    const dead = 0.1;
+    const steer = Math.abs(nx) < dead ? 0 : nx;
+    const throttle = Math.abs(ny) < dead ? 0 : -ny;
+    playableBoat.setVirtualInput({ throttle, steer });
+  }
+
+  function resetJoystick() {
+    joyActive = false;
+    joyPointerId = null;
+    joyTouchId = null;
+    joyBase.classList.remove('active');
+    joyKnob.style.transform = 'translate(0px, 0px)';
+    playableBoat.setVirtualInput({ throttle: 0, steer: 0 });
+  }
+
+  function beginJoyAt(clientX, clientY) {
+    const rect = joyBase.getBoundingClientRect();
+    joyCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    joyActive = true;
+    joyBase.classList.add('active');
+    applyJoystickDelta(clientX, clientY);
+  }
+
+  // Pointer Events (desktop + modern mobile)
+  joyBase.addEventListener('pointerdown', (e) => {
+    if (joyTouchId !== null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    joyPointerId = e.pointerId;
+    try {
+      joyBase.setPointerCapture?.(e.pointerId);
+    } catch {}
+    beginJoyAt(e.clientX, e.clientY);
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (!joyActive || joyPointerId === null || e.pointerId !== joyPointerId) return;
+    applyJoystickDelta(e.clientX, e.clientY);
+  });
+  window.addEventListener('pointerup', (e) => {
+    if (joyPointerId !== null && e.pointerId === joyPointerId) resetJoystick();
+  });
+  window.addEventListener('pointercancel', (e) => {
+    if (joyPointerId !== null && e.pointerId === joyPointerId) resetJoystick();
+  });
+
+  // Native Touch Events (rock-solid fallback for iOS Safari & Android Chrome)
+  joyBase.addEventListener(
+    'touchstart',
+    (e) => {
+      if (!e.changedTouches?.length) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const t0 = e.changedTouches[0];
+      joyTouchId = t0.identifier;
+      joyPointerId = null;
+      beginJoyAt(t0.clientX, t0.clientY);
+    },
+    { passive: false }
+  );
+  joyBase.addEventListener(
+    'touchmove',
+    (e) => {
+      if (joyTouchId === null) return;
+      for (const t0 of e.changedTouches) {
+        if (t0.identifier === joyTouchId) {
+          e.preventDefault();
+          applyJoystickDelta(t0.clientX, t0.clientY);
+          break;
+        }
+      }
+    },
+    { passive: false }
+  );
+  const endTouchJoy = (e) => {
+    if (joyTouchId === null) return;
+    for (const t0 of e.changedTouches) {
+      if (t0.identifier === joyTouchId) {
+        resetJoystick();
+        break;
+      }
+    }
+  };
+  joyBase.addEventListener('touchend', endTouchJoy, { passive: false });
+  joyBase.addEventListener('touchcancel', endTouchJoy, { passive: false });
+  joyBase.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  const boatRightBtns = document.createElement('div');
+  boatRightBtns.className = 'boat-action-cluster';
+
+  const turboBtn = document.createElement('button');
+  turboBtn.type = 'button';
+  turboBtn.className = 'boat-action-btn boat-turbo-btn';
+  turboBtn.dataset.boatTurbo = 'true';
+  turboBtn.innerHTML = `<span>⚡</span><small>Turbo</small>`;
+  bindHold(
+    turboBtn,
+    () => playableBoat.setVirtualInput({ throttle: 1.35 }),
+    () => {
+      if (!joyActive) playableBoat.setVirtualInput({ throttle: 0 });
+    }
+  );
+
+  const boatHornBtn = document.createElement('button');
+  boatHornBtn.type = 'button';
+  boatHornBtn.className = 'boat-action-btn boat-horn-btn';
+  boatHornBtn.dataset.boatHorn = 'true';
+  boatHornBtn.innerHTML = `<span>📯</span><small>Klakson</small>`;
+  boatHornBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!ambience.isEnabled()) onToggleAudio?.();
+    ambience?.playBoatHorn?.(false);
+  });
+
+  boatRightBtns.append(turboBtn, boatHornBtn);
+  boatTouchEl.append(joyBase, boatRightBtns);
 
   function syncModeBanner(camState, boatState = playableBoat.getState()) {
     const boatOn = Boolean(boatState?.active);
+    boatTouchEl.classList.toggle('hidden', !boatOn);
+    if (!boatOn && joyActive) resetJoystick();
     for (const [id, item] of modeActionBtns) {
       const active = id === 'play-boat' ? boatOn : !boatOn && camState.mode === id;
       item.btn.classList.toggle('active', active);
@@ -744,8 +928,8 @@ export function createExploreDrawer({
       banner.classList.remove('hidden');
       bannerTitle.textContent =
         lang === 'en'
-          ? `⛵ Steer Ketek · ${boatState.speedKmh} km/h · Relics ${boatState.collectedCount}/${boatState.totalRelics}`
-          : `⛵ Setir Perahu Ketek · ${boatState.speedKmh} km/j · Artefak ${boatState.collectedCount}/${boatState.totalRelics}`;
+          ? `⛵ Ketek · ${boatState.speedKmh} km/h · Relics ${boatState.collectedCount}/${boatState.totalRelics}`
+          : `⛵ Ketek · ${boatState.speedKmh} km/j · Artefak ${boatState.collectedCount}/${boatState.totalRelics}`;
       if (boatState.completed) {
         bannerDetail.textContent =
           lang === 'en'
@@ -755,15 +939,15 @@ export function createExploreDrawer({
         const rName = lang === 'en' ? boatState.nearestRelic.nameEn : boatState.nearestRelic.nameId;
         bannerDetail.textContent =
           lang === 'en'
-            ? `Nearest: ${rName} (${boatState.nearestRelic.distM} m) · WASD / Arrows`
-            : `Terdekat: ${rName} (${boatState.nearestRelic.distM} m) · WASD / Panah`;
+            ? `Next: ${rName} (${boatState.nearestRelic.distM} m)`
+            : `Terdekat: ${rName} (${boatState.nearestRelic.distM} m)`;
       }
 
       if (!bannerActions.dataset.boatControlsMounted) {
         bannerActions.innerHTML = '';
         bannerActions.dataset.boatControlsMounted = 'true';
         const pad = document.createElement('div');
-        pad.className = 'drone-pad';
+        pad.className = 'drone-pad boat-desktop-pad';
         const controls = [
           ['↑', () => playableBoat.setVirtualInput({ throttle: 1 }), () => playableBoat.setVirtualInput({ throttle: 0 })],
           ['↓', () => playableBoat.setVirtualInput({ throttle: -1 }), () => playableBoat.setVirtualInput({ throttle: 0 })],
@@ -1054,6 +1238,7 @@ export function createExploreDrawer({
   return {
     drawerEl: drawer,
     bannerEl: banner,
+    boatTouchEl,
     photoBarEl: photoBar,
     toastEl: toast,
     setOpen,

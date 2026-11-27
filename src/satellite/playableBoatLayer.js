@@ -288,6 +288,12 @@ export function createPlayableBoatLayer({ map, ambience, onUpdate, onCollect }) 
     relicGroup.visible = true;
     lastTs = 0;
 
+    // Prevent map touch-pan/pinch from fighting the boat chase-camera on mobile
+    try {
+      map.dragPan?.disable();
+      map.touchZoomRotate?.disable();
+    } catch {}
+
     const [lng, lat] = localToLngLat(boatX, boatZ);
     const bDeg = (((headingRad * 180) / Math.PI) % 360 + 360) % 360;
     map.jumpTo({
@@ -310,6 +316,10 @@ export function createPlayableBoatLayer({ map, ambience, onUpdate, onCollect }) 
     virtualInput.throttle = 0;
     virtualInput.steer = 0;
     speedMps = 0;
+    try {
+      map.dragPan?.enable();
+      map.touchZoomRotate?.enable();
+    } catch {}
     onUpdate?.(getState());
     if (mapRef) mapRef.triggerRepaint();
   }
@@ -322,18 +332,20 @@ export function createPlayableBoatLayer({ map, ambience, onUpdate, onCollect }) 
     simTime += dt;
     if (!completed) elapsedSec += dt;
 
-    const throttle =
+    const rawThrottle =
       (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) -
       (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) +
       virtualInput.throttle;
-    const steer =
+    const throttle = Math.max(-1, Math.min(1.4, rawThrottle));
+    const rawSteer =
       (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) -
       (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) +
       virtualInput.steer;
+    const steer = Math.max(-1, Math.min(1, rawSteer));
 
-    // Responsive arcade-realistic boat acceleration & water drag (max ~75 km/h so 5 km to Kemaro is fun!)
-    const maxSpeed = 24.0; // m/s (~86 km/h turbo ketek!)
-    const accel = throttle > 0 ? 18.0 : throttle < 0 ? 14.0 : 0;
+    // Responsive arcade-realistic boat acceleration & water drag (max ~95 km/h with Turbo!)
+    const maxSpeed = throttle > 1.05 ? 30.0 : 24.0;
+    const accel = throttle > 0 ? 20.0 : throttle < 0 ? 15.0 : 0;
     if (throttle !== 0) {
       speedMps += throttle * accel * dt;
     } else {
@@ -447,7 +459,7 @@ export function createPlayableBoatLayer({ map, ambience, onUpdate, onCollect }) 
     render(gl, options) {
       if (!renderer || !camera || !active) return;
       const now = performance.now();
-      const dt = lastTs > 0 ? Math.min(0.08, Math.max(0.004, (now - lastTs) / 1000)) : 0.016;
+      const dt = lastTs > 0 ? Math.min(0.16, Math.max(0.004, (now - lastTs) / 1000)) : 0.016;
       lastTs = now;
 
       step(dt);
