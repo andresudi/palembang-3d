@@ -14,6 +14,7 @@ import { createPlayableBoatLayer } from './playableBoatLayer.js';
 import { createRoutePlanner } from './routePlanner.js';
 import { createMiniMapRadar } from './miniMapRadar.js';
 import { createI18n } from './i18n.js';
+import { createOnboardingAndHelp } from './onboardingHelp.js';
 
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
@@ -268,6 +269,19 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   let isFlying = false;
   let lastShareUrl = '';
 
+  // Auto-select Eco graphics on mobile viewports (<=720px) unless user explicitly saved a preference
+  const QUALITY_KEY = 'palembang_3d_quality_v1';
+  let savedQuality = null;
+  try {
+    savedQuality = window.localStorage?.getItem(QUALITY_KEY);
+  } catch {}
+  let graphicsQuality =
+    savedQuality === 'eco' || savedQuality === 'high'
+      ? savedQuality
+      : (rootEl.clientWidth || window.innerWidth) <= 720
+        ? 'eco'
+        : 'high';
+
   const i18n = createI18n();
   const hero3d = createHeroLandmarksCustomLayer();
   const traffic3d = createAnimatedTrafficLayer();
@@ -338,17 +352,17 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     lightingBtns.set(mode.id, btn);
   }
 
-  // Slim Top-Bar: [Satelit 3D | Diorama] + [Siang | Senja | Malam] + [ID/EN] + [Bagikan] + [Suara] + [Eksplorasi]
+  // Slim Top-Bar: [Satelit 3D | Diorama] + [Siang | Senja | Malam] + [ID/EN] + [Bagikan] + [Suara] + [?] + [Eksplorasi]
   const langBtn = document.createElement('button');
   langBtn.type = 'button';
-  langBtn.className = 'toggle-btn lang-btn';
+  langBtn.className = 'toggle-btn lang-btn top-only-btn';
   langBtn.textContent = i18n.getLang().toUpperCase();
   langBtn.title = 'Switch Language (Indonesia / English)';
   langBtn.dataset.langBtn = 'true';
 
   const shareBtn = document.createElement('button');
   shareBtn.type = 'button';
-  shareBtn.className = 'toggle-btn';
+  shareBtn.className = 'toggle-btn top-only-btn';
   shareBtn.textContent = 'Bagikan';
   shareBtn.title = 'Salin tautan sudut kamera saat ini';
   shareBtn.dataset.shareBtn = 'true';
@@ -361,6 +375,13 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   audioBtn.dataset.audioBtn = 'true';
   audioBtn.setAttribute('aria-pressed', 'false');
 
+  const helpBtn = document.createElement('button');
+  helpBtn.type = 'button';
+  helpBtn.className = 'toggle-btn help-btn top-only-btn';
+  helpBtn.textContent = '?';
+  helpBtn.title = 'Panduan kontrol & shortcut keyboard';
+  helpBtn.dataset.helpBtn = 'true';
+
   const exploreBtn = document.createElement('button');
   exploreBtn.type = 'button';
   exploreBtn.className = 'toggle-btn explore-trigger';
@@ -368,7 +389,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   exploreBtn.dataset.exploreBtn = 'true';
   exploreBtn.setAttribute('aria-expanded', 'false');
 
-  topControls.append(modeGroup, lightingGroup, langBtn, shareBtn, audioBtn, exploreBtn);
+  topControls.append(modeGroup, lightingGroup, langBtn, shareBtn, audioBtn, helpBtn, exploreBtn);
   topBar.append(brand, topControls);
 
   // Info Card
@@ -647,7 +668,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     return url.toString();
   }
 
-  shareBtn.addEventListener('click', async () => {
+  async function triggerShare() {
     lastShareUrl = buildShareUrl();
     try {
       window.history.replaceState(null, '', lastShareUrl);
@@ -660,7 +681,37 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       }
     } catch {}
     exploreDrawer?.showToast(copied ? i18n.t('toastShareCopied') : i18n.t('toastShareUrl'));
+  }
+  shareBtn.addEventListener('click', triggerShare);
+
+  function applyQuality(q, { persist = false } = {}) {
+    graphicsQuality = q === 'eco' ? 'eco' : 'high';
+    rootEl.dataset.quality = graphicsQuality;
+    traffic3d.setQuality(graphicsQuality);
+    if (map.getSource('aws-terrain')) {
+      map.setTerrain({ source: 'aws-terrain', exaggeration: graphicsQuality === 'eco' ? 1.0 : 1.35 });
+    }
+    if (persist) {
+      try {
+        window.localStorage?.setItem(QUALITY_KEY, graphicsQuality);
+      } catch {}
+    }
+    exploreDrawer?.syncQuality(graphicsQuality);
+  }
+
+  const onboardingHelp = createOnboardingAndHelp({
+    i18n,
+    hasDeepLink: initialView.hasCustomView,
+    onStartTour() {
+      playableBoat.stop();
+      cameraModes.startTour(1);
+    },
+    onStartBoat() {
+      cameraModes.stopAll();
+      playableBoat.start();
+    },
   });
+  helpBtn.addEventListener('click', () => onboardingHelp.setHelpOpen(!onboardingHelp.isHelpOpen()));
 
   exploreDrawer = createExploreDrawer({
     i18n,
@@ -703,6 +754,19 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       const next = !radar.isVisible();
       radar.setVisible(next);
       return next;
+    },
+    onSetQuality(q) {
+      applyQuality(q, { persist: true });
+    },
+    onToggleLang() {
+      i18n.toggle();
+      applyGlobalLanguage();
+    },
+    onShare() {
+      triggerShare();
+    },
+    onOpenHelp() {
+      onboardingHelp.setHelpOpen(true);
     },
     onSetHour(h) {
       stopTimelapse();
@@ -747,6 +811,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     infoGmaps.textContent = i18n.t('openGmaps');
     syncInfoCard(activePoiItem, { expand: infoExpanded });
     exploreDrawer.applyLanguage();
+    onboardingHelp.applyLanguage();
   }
   langBtn.addEventListener('click', () => {
     i18n.toggle();
@@ -766,7 +831,9 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     infoCard,
     radar.el,
     presetNav,
-    hint
+    hint,
+    onboardingHelp.onboardEl,
+    onboardingHelp.helpEl
   );
   rootEl.appendChild(hud);
 
@@ -984,6 +1051,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   syncPresetUi('overview');
   refreshMarkerVisibility();
   applyGlobalLanguage();
+  applyQuality(graphicsQuality);
   exploreDrawer.syncClock(currentHour, false);
   rootEl.dataset.mode = 'satellite';
   rootEl.dataset.labels = 'true';
@@ -1020,6 +1088,9 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       timelapse: timelapseRunning,
       photoMode,
       radarVisible: radar.isVisible(),
+      quality: graphicsQuality,
+      onboardingOpen: onboardingHelp.isOnboardingOpen(),
+      helpOpen: onboardingHelp.isHelpOpen(),
       lastShareUrl,
       drawerOpen: exploreDrawer.isOpen(),
       cameraMode: cameraModes.getState().mode,
@@ -1044,6 +1115,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
 
   return function cleanup() {
     stopTimelapse();
+    onboardingHelp.cleanup();
     cameraModes.cleanup();
     playableBoat.cleanup();
     radar.cleanup();

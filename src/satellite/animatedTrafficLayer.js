@@ -886,6 +886,12 @@ export function createAnimatedTrafficLayer() {
   let camera = null;
   let mapRef = null;
   let enabled = true;
+  let quality = 'high'; // 'high' | 'eco'
+  let activeCityCount = CITY_VEHICLE_COUNT;
+  let activeBridgeCount = BRIDGE_VEHICLE_COUNT;
+  let activeBoatCount = BOAT_COUNT;
+  let activeBargeCount = BARGE_COUNT;
+  let activeLrtCount = LRT_TRAIN_COUNT;
   let lightingMode = 'siang';
   let lastTimeMs = 0;
   let simTime = 0;
@@ -1431,13 +1437,52 @@ export function createAnimatedTrafficLayer() {
     if (mapRef) mapRef.triggerRepaint();
   }
 
+  function setQuality(q) {
+    quality = q === 'eco' ? 'eco' : 'high';
+    const isEco = quality === 'eco';
+    activeCityCount = isEco ? 140 : CITY_VEHICLE_COUNT;
+    activeBridgeCount = isEco ? 20 : BRIDGE_VEHICLE_COUNT;
+    const totalV = activeCityCount + activeBridgeCount;
+    activeBoatCount = isEco ? 18 : BOAT_COUNT;
+    activeBargeCount = isEco ? 4 : BARGE_COUNT;
+    activeLrtCount = isEco ? 6 : LRT_TRAIN_COUNT;
+
+    carBodyInst.count = totalV;
+    carCabinInst.count = totalV;
+    carHeadInst.count = totalV;
+    carTailInst.count = totalV;
+    carHeadGlowInst.count = totalV;
+    carTailGlowInst.count = totalV;
+
+    boatHullInst.count = activeBoatCount;
+    boatCanopyInst.count = activeBoatCount;
+    boatWakeInst.count = activeBoatCount;
+    boatLanternInst.count = activeBoatCount;
+
+    bargeHullInst.count = activeBargeCount;
+    bargeCoalInst.count = activeBargeCount;
+    tugHullInst.count = activeBargeCount;
+    tugCabinInst.count = activeBargeCount;
+    bargeWakeInst.count = activeBargeCount;
+    tugLampInst.count = activeBargeCount;
+
+    lrtBodyInst.count = activeLrtCount * CARS_PER_TRAIN;
+    lrtStripeInst.count = activeLrtCount * CARS_PER_TRAIN;
+    lrtWinInst.count = activeLrtCount * CARS_PER_TRAIN;
+    lrtHeadInst.count = activeLrtCount;
+    lrtTailInst.count = activeLrtCount;
+
+    if (mapRef) mapRef.triggerRepaint();
+  }
+
   function getStats() {
     return Object.freeze({
       active: enabled,
-      vehicleCount: TOTAL_VEHICLES,
-      boatCount: BOAT_COUNT,
-      bargeCount: BARGE_COUNT,
-      lrtTrainCount: LRT_TRAIN_COUNT,
+      quality,
+      vehicleCount: activeCityCount + activeBridgeCount,
+      boatCount: activeBoatCount,
+      bargeCount: activeBargeCount,
+      lrtTrainCount: activeLrtCount,
       tick: frameTick,
       sampleVehicleDist: Math.round(vehicles[0]?.dist || 0),
       sampleLrtDist: Math.round(lrtTrains[0]?.dist || 0),
@@ -1595,6 +1640,8 @@ export function createAnimatedTrafficLayer() {
     layer: customLayer,
     setLightingMode,
     setEnabled,
+    setQuality,
+    getQuality: () => quality,
     getStats,
     pickClosestTargetIndex,
     getFollowTarget: computeTargetPose,

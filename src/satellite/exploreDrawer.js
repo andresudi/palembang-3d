@@ -23,6 +23,10 @@ export function createExploreDrawer({
   onToggleTraffic,
   onToggleLabels,
   onToggleRadar,
+  onSetQuality,
+  onToggleLang,
+  onShare,
+  onOpenHelp,
   onSetHour,
   onToggleTimelapse,
   onSetFestival,
@@ -49,11 +53,40 @@ export function createExploreDrawer({
   head.className = 'drawer-head';
   const drawerTitleEl = document.createElement('span');
   drawerTitleEl.className = 'drawer-title';
+
+  const headActions = document.createElement('div');
+  headActions.className = 'drawer-head-actions';
+
+  const mobileTools = document.createElement('div');
+  mobileTools.className = 'drawer-mobile-tools';
+  const mLangBtn = document.createElement('button');
+  mLangBtn.type = 'button';
+  mLangBtn.className = 'drawer-close';
+  mLangBtn.textContent = i18n.getLang().toUpperCase();
+  mLangBtn.addEventListener('click', () => onToggleLang?.());
+
+  const mShareBtn = document.createElement('button');
+  mShareBtn.type = 'button';
+  mShareBtn.className = 'drawer-close';
+  mShareBtn.textContent = '↗';
+  mShareBtn.title = 'Bagikan';
+  mShareBtn.addEventListener('click', () => onShare?.());
+
+  const mHelpBtn = document.createElement('button');
+  mHelpBtn.type = 'button';
+  mHelpBtn.className = 'drawer-close';
+  mHelpBtn.textContent = '?';
+  mHelpBtn.title = 'Bantuan';
+  mHelpBtn.addEventListener('click', () => onOpenHelp?.());
+
+  mobileTools.append(mLangBtn, mShareBtn, mHelpBtn);
+
   const closeBtn = document.createElement('button');
   closeBtn.type = 'button';
   closeBtn.className = 'drawer-close';
   closeBtn.addEventListener('click', () => setOpen(false));
-  head.append(drawerTitleEl, closeBtn);
+  headActions.append(mobileTools, closeBtn);
+  head.append(drawerTitleEl, headActions);
 
   const tabBar = document.createElement('div');
   tabBar.className = 'drawer-tabs drawer-tabs-4';
@@ -245,6 +278,24 @@ export function createExploreDrawer({
 
   layerRow.append(bldgToggle, animToggle, labelToggle, radarToggle);
   ridePanel.appendChild(layerRow);
+
+  // v2.5 Graphics Quality Toggle (High vs Eco)
+  const qualityRow = document.createElement('div');
+  qualityRow.className = 'quality-row';
+  qualityRow.innerHTML = `
+    <span class="quality-label" data-quality-label>Grafis</span>
+    <div class="segmented-control quality-seg">
+      <button type="button" class="seg-btn" data-quality-btn="high">Tinggi</button>
+      <button type="button" class="seg-btn" data-quality-btn="eco">Hemat</button>
+    </div>
+  `;
+  const qualityLabelEl = qualityRow.querySelector('[data-quality-label]');
+  const qHighBtn = qualityRow.querySelector('[data-quality-btn="high"]');
+  const qEcoBtn = qualityRow.querySelector('[data-quality-btn="eco"]');
+  qHighBtn.addEventListener('click', () => onSetQuality?.('high'));
+  qEcoBtn.addEventListener('click', () => onSetQuality?.('eco'));
+  ridePanel.appendChild(qualityRow);
+
   tabPanels.set('ride', ridePanel);
 
   // === TAB 2: Jelajah (Passport + Category Filter + Search + POI List + Route Planner + Audio) ===
@@ -955,11 +1006,26 @@ export function createExploreDrawer({
     animToggle.classList.toggle('active', isOn);
   }
 
+  function syncQuality(q) {
+    qHighBtn.classList.toggle('active', q !== 'eco');
+    qEcoBtn.classList.toggle('active', q === 'eco');
+  }
+
+  const origApplyLang = applyLanguage;
+  function applyLanguageWithV25() {
+    origApplyLang();
+    const en = i18n.getLang() === 'en';
+    mLangBtn.textContent = i18n.getLang().toUpperCase();
+    qualityLabelEl.textContent = en ? 'Graphics' : 'Grafis';
+    qHighBtn.textContent = en ? 'High' : 'Tinggi';
+    qEcoBtn.textContent = en ? 'Eco' : 'Hemat';
+  }
+
   setTab('ride');
   setCategory('all', false);
   syncPassport();
   syncAudio(false);
-  applyLanguage();
+  applyLanguageWithV25();
 
   return {
     drawerEl: drawer,
@@ -972,6 +1038,7 @@ export function createExploreDrawer({
     setCategory,
     syncModeBanner,
     syncTrafficToggle,
+    syncQuality,
     syncPassport,
     syncAudio,
     syncWeather,
@@ -981,7 +1048,7 @@ export function createExploreDrawer({
     syncClock,
     syncFestival,
     syncPhotoMode,
-    applyLanguage,
+    applyLanguage: applyLanguageWithV25,
     showToast,
   };
 }
