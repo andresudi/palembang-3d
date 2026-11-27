@@ -7,9 +7,9 @@ import { HERO_BRIDGE_SPECS } from './heroLandmarksLayer.js';
 const ANCHOR_LNGLAT = [104.76340, -2.99194];
 const CORE_CENTER = [104.7634, -2.9915];
 
-// Curated Palembang landmark corridor bounds (matches MapLibre maxBounds 1:1 with Diorama scope)
+// Curated Palembang landmark corridor bounds (matches MapLibre maxBounds, extended west for Bukit Siguntang)
 const CORRIDOR_BOUNDS = {
-  minLng: 104.725,
+  minLng: 104.715,
   maxLng: 104.835,
   minLat: -3.040,
   maxLat: -2.962,

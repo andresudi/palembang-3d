@@ -54,6 +54,14 @@ Switch seamlessly with one click in the top bar between:
 | :---: | :---: |
 | ![Palembang 5-Era Historical Timeline](docs/screenshots/v3-timeline-kesultanan.png) | ![Wikimedia Landmark Photo Lightbox](docs/screenshots/v3-lightbox.png) |
 
+| Ampera 1965 Vertical-Lift Span & Tall Pinisi Ship | Jembatan Musi VI Night RGB LED Arch Lightshow |
+| :---: | :---: |
+| ![Ampera 1965 Vertical Lift Span](docs/screenshots/v35-ampera-lift.png) | ![Jembatan Musi VI RGB Night](docs/screenshots/v35-musi-vi-night.png) |
+
+| Tugu Ikan Belido Plaza BKB (3D Water Fountain) | Danau Dayung JSC (Asian Games Rowing Race) |
+| :---: | :---: |
+| ![Tugu Ikan Belido Fountain](docs/screenshots/v35-tugu-belido.png) | ![Danau Dayung JSC Rowing Race](docs/screenshots/v35-danau-dayung.png) |
+
 ---
 
 ## Mode 2: Offline Stylized PBR Diorama (Three.js + UnrealBloom)
@@ -79,7 +87,7 @@ Switch seamlessly with one click in the top bar between:
   - **OpenFreeMap / OpenStreetMap** real-time vector tiles & 3D building extrusions (`Gedung 3D` toggle)
   - **AWS Terrarium** 3D elevation terrain + atmospheric sky & horizon fog
   - **Custom MapLibre v6 Three.js 3D WebGL Layers**:
-    - **9 True-Scale Hero Overlays**: **Ampera Bridge** (`66m` twin towers with pulsing beacons & ramps), **Musi IV Cable-Stayed Bridge** (`58m` pylons & ramps), **Masjid Agung SMB I** (3-tiered emerald *tumpang* roof + `46m` minaret), **Monpera** (5-petal Melati monument), **Benteng Kuto Besak** (fortress wall, twin bastions & *Lawang Kuto* gate), **Gedung Ledeng (Palembang City Hall 1928 Water Tower)**, **Rumah Limas Traditional Pavilion**, **Kemaro Island 9-Story Pagoda** (`45m`), **elevated South Sumatra LRT viaduct**, and **Gelora Sriwijaya Jakabaring 4 stadium floodlight towers**.
+    - **14 True-Scale Hero Overlays & Living Landmark Animations (v3.5)**: **Ampera Bridge** (`66m` twin towers + interactive **`⬆️ Lift Ampera Span (1965)`** raising the central `72m` deck `+24m` for a passing Pinisi sailing ship), **Musi IV Cable-Stayed Bridge**, **Musi VI Steel Tied-Arch Bridge** (flowing multicolor RGB night LED lightshow + live bridge deck traffic), **Tugu Ikan Belido** (12m silver fish on Plaza BKB spraying a parabolic 3D fountain into Sungai Musi), **Masjid Agung SMB I**, **Masjid Muhammad Cheng Ho Jakabaring** (pagoda mosque + swaying lanterns & courtyard fountain), **Monpera**, **Benteng Kuto Besak**, **Gedung Ledeng (1928 Water Tower)**, **Rumah Limas**, **Taman Kambang Iwak Besak** (choreographed dancing lake fountain + lakeside joggers), **Danau Dayung JSC** (Asian Games rowing course + 4 racing rowing sculls), **Bukit Siguntang** (Srivijaya hilltop pendopo + glowing night fireflies), **Kemaro Island 9-Story Pagoda**, **elevated South Sumatra LRT viaduct**, and **Gelora Sriwijaya Jakabaring stadium floodlights**.
   - **v2.0 Festivals, 24-Hour Time-Lapse & Photo Mode**:
     - Continuous `00:00–23:59` time-of-day slider + auto-play 24h time-lapse, **Traditional Bidar Boat Race** (6 long racing canoes along BKB–Ampera), **Ampera 3D Fireworks & 48 Kemaro Sky Lanterns** (auto-night + procedural firework pops), and **Photo Mode** (zero-HUD view + 1-click PNG postcard export with optional watermark).
   - **Playable Perahu Ketek Mini-Game & Srivijaya Relic Quest**:
@@ -100,7 +108,7 @@ Switch seamlessly with one click in the top bar between:
   - 100% procedural canvas PBR textures (grained asphalt, stone plaza paving, terracotta roof tiles, weathered colonial plaster, mowed stadium turf, multi-story shophouse facades with glowing night windows), dynamic `PMREMGenerator` sky IBL, drifting clouds & night starfield, animated river/road/LRT traffic, and mood-tuned `UnrealBloomPass`.
 - **Unified Interactive Controls & Exploration Drawer**:
   - **Slim Top-Bar + Collapsible Left Drawer (`Eksplorasi`)**: Keeps 90%+ of the 3D viewport unobstructed while organizing **Ride-Along**, **Cinematic Auto-Tour**, **Free Drone (`WASD`/Arrows + `Q`/`E` + on-screen controls)**, **Tourism & Culinary Explorer**, and **3D Layer Toggles** (`Gedung 3D`, `Animasi`, `Label 3D`).
-  - **Tourism, Culinary & Explorer Passport (`20` POIs)**: Filter color-coded 3D map pins across **10 Landmarks** (including Monpera), **6 Legendary Palembang Culinary Spots** (Pempek Candy, Pempek Vico, Kampung Pempek 26 Ilir, Martabak HAR, Mie Celor 26 Ilir, River Side BKB), and **4 South Sumatra LRT Stations**, complete with live search, persistent `localStorage` **Explorer Passport (`X/20`)** rank badges, and **Procedural Web Audio Ambience** (Musi River water lapping, tropical breeze, and distant riverboat horns — 100% browser-native with top-bar mute toggle).
+  - **Tourism, Culinary & Explorer Passport (`26` POIs)**: Filter color-coded 3D map pins across **16 Landmarks** (including Tugu Ikan Belido, Jembatan Musi VI, Masjid Cheng Ho, Danau Dayung JSC, Kambang Iwak, and Bukit Siguntang), **6 Legendary Palembang Culinary Spots** (Pempek Candy, Pempek Vico, Kampung Pempek 26 Ilir, Martabak HAR, Mie Celor 26 Ilir, River Side BKB), and **4 South Sumatra LRT Stations**, complete with live search, persistent `localStorage` **Explorer Passport (`X/26`)** rank badges, and **Procedural Web Audio Ambience** (Musi River water lapping, tropical breeze, and distant riverboat horns — 100% browser-native with top-bar mute toggle).
   - **Smart City Weather & GIS Tools (100% Zero API Key)**:
     - **Live Palembang Weather (Open-Meteo)**: Real-time temperature, humidity, wind, and WMO weather sync + manual `Cerah` / `Berawan` / `Hujan 3D` toggles driving slanted tropical rain particles, overcast sky fog, and procedural Web Audio rain sound.
     - **Musi River Tide / Flood Elevation Simulation (`0.0 m – +3.5 m`)**: Depth-tested 3D shimmering water plane over AWS Terrarium terrain showing riverbank inundation tiers (`Normal` → `Pasang Harian` → `Siaga` → `Banjir Rob Signifikan`).

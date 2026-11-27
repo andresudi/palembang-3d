@@ -149,6 +149,51 @@ export const REAL_PRESETS = [
     note:
       'Perhatikan skala jarak sebenarnya di Sungai Musi dibandingkan tampilan diorama terkompresi.',
   },
+  {
+    id: 'musi-vi',
+    label: 'Jembatan Musi VI',
+    title: 'Jembatan Musi VI (Pelengkung LED RGB)',
+    zone: '3.0044° S, 104.7499° E · 32 Ilir – 3-4 Ulu',
+    center: [104.74992, -3.00437],
+    zoom: 16.5,
+    pitch: 65,
+    bearing: 35,
+    coordsText: '3.0044° S, 104.7499° E',
+    summary:
+      'Jembatan pelengkung baja ikonik sepanjang 925 meter yang menghubungkan Ilir Barat II dan Seberang Ulu I, terkenal dengan atraksi lampu LED RGB warna-warni yang memantul di Sungai Musi saat malam hari.',
+    note:
+      'Coba ganti suasana ke Senja atau Malam untuk menyaksikan gelombang lampu LED warna-warni melengkung di atas Musi VI.',
+  },
+  {
+    id: 'masjid-cheng-ho',
+    label: 'Masjid Cheng Ho',
+    title: 'Masjid Al-Islam Muhammad Cheng Ho Sriwijaya',
+    zone: '3.0242° S, 104.7807° E · Kompleks Jakabaring',
+    center: [104.78071, -3.02422],
+    zoom: 17.5,
+    pitch: 62,
+    bearing: -24,
+    coordsText: '3.0242° S, 104.7807° E',
+    summary:
+      'Masjid berarsitektur akulturasi Tionghoa, Nusantara, dan Islam di kawasan Jakabaring dengan atap pagoda hijau-merah-emas, dua menara kembar 5 lantai, gerbang paifang, serta lampion merah yang berayun lembut.',
+    note:
+      'Berjarak hanya ~430 m dari Stasiun LRT Jakabaring dan ~900 m dari Stadion Gelora Sriwijaya.',
+  },
+  {
+    id: 'bukit-siguntang',
+    label: 'Bukit Siguntang',
+    title: 'Taman Purbakala Bukit Siguntang (Sriwijaya)',
+    zone: '2.9972° S, 104.7256° E · Bukit Kecil Barat',
+    center: [104.72555, -2.99722],
+    zoom: 16.9,
+    pitch: 60,
+    bearing: 28,
+    coordsText: '2.9972° S, 104.7256° E',
+    summary:
+      'Titik tertinggi sekaligus situs suci peninggalan Kerajaan Sriwijaya abad ke-7 tempat ditemukannya arca Buddha Amarawati raksasa dan kompleks makam tokoh bangsawan Melayu-Palembang.',
+    note:
+      'Ganti ke suasana Senja atau Malam untuk melihat pendar kunang-kunang emas melayang di sekitar pendopo bukit.',
+  },
 ];
 
 export const REAL_MARKERS = [
@@ -156,10 +201,15 @@ export const REAL_MARKERS = [
   { id: 'masjid-lrt', label: 'Masjid Agung & BAM', lngLat: [104.7606, -2.9880] },
   { id: 'pasar-16', label: 'Pasar 16 Ilir', lngLat: [104.76375, -2.98936] },
   { id: 'kuto-besak', label: 'Benteng Kuto Besak', lngLat: [104.75998, -2.99218] },
+  { id: 'tugu-belido', label: 'Tugu Ikan Belido', lngLat: [104.76008, -2.99268] },
   { id: 'walikota-kambang', label: 'Kantor Walikota', lngLat: [104.75667, -2.99104] },
-  { id: 'kambang-iwak', presetId: 'walikota-kambang', label: 'Kambang Iwak', lngLat: [104.74599, -2.98981] },
+  { id: 'kambang-iwak', label: 'Kambang Iwak', lngLat: [104.74645, -2.98979] },
   { id: 'kampung-kapitan', label: 'Kampung Kapitan', lngLat: [104.76341, -2.99584] },
   { id: 'jakabaring', label: 'Gelora Sriwijaya Jakabaring', lngLat: [104.78910, -3.02150] },
+  { id: 'danau-dayung', label: 'Danau Dayung JSC', lngLat: [104.79600, -3.01850] },
   { id: 'musi-iv', label: 'Jembatan Musi IV', lngLat: [104.77410, -2.98355] },
+  { id: 'musi-vi', label: 'Jembatan Musi VI', lngLat: [104.74992, -3.00437] },
+  { id: 'masjid-cheng-ho', label: 'Masjid Cheng Ho', lngLat: [104.78071, -3.02422] },
+  { id: 'bukit-siguntang', label: 'Bukit Siguntang', lngLat: [104.72555, -2.99722] },
   { id: 'pulau-kemaro', label: 'Pulau Kemaro', lngLat: [104.81305, -2.97995] },
 ];

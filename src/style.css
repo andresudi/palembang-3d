@@ -1623,6 +1623,43 @@ button:focus-visible {
   background: linear-gradient(180deg, rgba(10, 16, 22, 0), rgba(10, 16, 22, 0.86));
 }
 
+.info-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.info-action-row .info-gmaps-link {
+  margin-top: 0;
+}
+
+.info-lift-btn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: #fff;
+  background: rgba(200, 61, 50, 0.88);
+  border: 1px solid rgba(255, 194, 102, 0.55);
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.info-lift-btn.hidden {
+  display: none;
+}
+
+.info-lift-btn:hover {
+  background: rgba(220, 74, 62, 0.98);
+}
+
+.info-lift-btn.active {
+  background: linear-gradient(135deg, #d8ad5c, #b5822a);
+  color: #10161c;
+  border-color: #f5d896;
+}
+
 .lightbox-card {
   width: 100%;
   max-width: 720px;

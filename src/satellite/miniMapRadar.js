@@ -6,7 +6,7 @@ import { PALEMBANG_POIS } from './palembangPois.js';
 import { SRIWIJAYA_RELICS } from './playableBoatLayer.js';
 
 const BOUNDS = {
-  minLng: 104.736,
+  minLng: 104.718,
   maxLng: 104.824,
   minLat: -3.032,
   maxLat: -2.968,

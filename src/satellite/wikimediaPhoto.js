@@ -42,6 +42,30 @@ const WIKI_SLUGS = {
     ['id', 'Pulau_Kemaro'],
     ['en', 'Kemaro_Island'],
   ],
+  'tugu-belido': [
+    ['id', 'Benteng_Kuto_Besak'],
+    ['id', 'Sungai_Musi'],
+  ],
+  'kambang-iwak': [
+    ['id', 'Palembang'],
+    ['en', 'Palembang'],
+  ],
+  'danau-dayung': [
+    ['id', 'Jakabaring_Sport_City'],
+    ['en', 'Gelora_Sriwijaya_Stadium'],
+  ],
+  'musi-vi': [
+    ['id', 'Sungai_Musi'],
+    ['en', 'Musi_River_(Indonesia)'],
+  ],
+  'masjid-cheng-ho': [
+    ['id', 'Masjid_Agung_Palembang'],
+    ['en', 'Palembang'],
+  ],
+  'bukit-siguntang': [
+    ['id', 'Bukit_Siguntang'],
+    ['en', 'Bukit_Seguntang'],
+  ],
   'kuliner-pempek-candy': [
     ['id', 'Pempek'],
     ['en', 'Pempek'],

@@ -206,7 +206,7 @@ function parseUrlCameraParams(fallback) {
     const v = Number(raw);
     return Number.isFinite(v) ? Math.max(min, Math.min(max, v)) : def;
   };
-  const lng = num('lng', 104.728, 104.832, fallback.center[0]);
+  const lng = num('lng', 104.715, 104.832, fallback.center[0]);
   const lat = num('lat', -3.038, -2.964, fallback.center[1]);
   const zoom = num('z', 13.8, 18.8, fallback.zoom);
   const pitch = num('pitch', 0, 78, fallback.pitch);
@@ -237,7 +237,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       pitch: initialView.pitch,
       bearing: initialView.bearing,
       maxBounds: [
-        [104.725, -3.040],
+        [104.715, -3.040],
         [104.835, -2.962],
       ],
       maxPitch: 78,
@@ -431,13 +431,23 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   const infoNote = document.createElement('p');
   infoNote.className = 'info-note';
 
+  const infoActionRow = document.createElement('div');
+  infoActionRow.className = 'info-action-row';
+
+  const infoLiftBtn = document.createElement('button');
+  infoLiftBtn.type = 'button';
+  infoLiftBtn.className = 'info-lift-btn hidden';
+  infoLiftBtn.dataset.amperaLiftBtn = 'true';
+  infoLiftBtn.textContent = '⬆️ Angkat Bentang Ampera (1965)';
+
   const infoGmaps = document.createElement('a');
   infoGmaps.className = 'info-gmaps-link hidden';
   infoGmaps.target = '_blank';
   infoGmaps.rel = 'noopener noreferrer';
   infoGmaps.textContent = 'Buka di Google Maps ↗';
 
-  infoCard.append(infoHeader, infoPhotoBtn, infoTitle, infoBody, infoNote, infoGmaps);
+  infoActionRow.append(infoLiftBtn, infoGmaps);
+  infoCard.append(infoHeader, infoPhotoBtn, infoTitle, infoBody, infoNote, infoActionRow);
 
   // Bottom Preset Dock
   const presetNav = document.createElement('nav');
@@ -472,6 +482,27 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   infoPhotoImg.addEventListener('error', () => {
     infoPhotoBtn.classList.add('hidden');
   });
+
+  function syncAmperaLiftBtn() {
+    const lifted = hero3d.getAmperaLiftState().active;
+    const en = i18n.getLang() === 'en';
+    infoLiftBtn.classList.toggle('active', lifted);
+    infoLiftBtn.textContent = lifted
+      ? (en ? '⬇️ Lower Ampera Span' : '⬇️ Turunkan Bentang Ampera')
+      : (en ? '⬆️ Lift Ampera Span (1965)' : '⬆️ Angkat Bentang Ampera (1965)');
+  }
+
+  infoLiftBtn.addEventListener('click', () => {
+    const lifted = hero3d.toggleAmperaLift();
+    syncAmperaLiftBtn();
+    const en = i18n.getLang() === 'en';
+    exploreDrawer?.showToast(
+      lifted
+        ? (en ? '⬆️ Raising Ampera 1965 lift span (+24 m) for tall ship!' : '⬆️ Mengangkat bentang tengah Ampera 1965 (+24 m) untuk kapal layar!')
+        : (en ? '⬇️ Lowering Ampera central span back to road deck' : '⬇️ Menurunkan bentang tengah Ampera kembali ke dek jalan')
+    );
+  });
+  hero3d.onLiftChange(syncAmperaLiftBtn);
 
   const timeline = createHistoricalTimeline({
     i18n,
@@ -736,6 +767,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     graphicsQuality = q === 'eco' ? 'eco' : 'high';
     rootEl.dataset.quality = graphicsQuality;
     traffic3d.setQuality(graphicsQuality);
+    hero3d.setQuality(graphicsQuality);
     if (map.getSource('aws-terrain')) {
       map.setTerrain({ source: 'aws-terrain', exaggeration: graphicsQuality === 'eco' ? 1.0 : 1.35 });
     }
@@ -790,6 +822,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     onToggleTraffic() {
       trafficVisible = !trafficVisible;
       traffic3d.setEnabled(trafficVisible);
+      hero3d.setAnimationsEnabled(trafficVisible);
       return trafficVisible;
     },
     onToggleLabels() {
@@ -946,6 +979,9 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     } else {
       infoGmaps.classList.add('hidden');
     }
+    const isAmperaCard = item.id === 'ampera' || item.id === 'era-ampera';
+    infoLiftBtn.classList.toggle('hidden', !isAmperaCard);
+    if (isAmperaCard) syncAmperaLiftBtn();
 
     // Async Wikimedia photo fetch (in-memory cached, graceful hide if unavailable)
     const seq = ++photoFetchSeq;
@@ -1165,6 +1201,8 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       onboardingOpen: onboardingHelp.isOnboardingOpen(),
       helpOpen: onboardingHelp.isHelpOpen(),
       timeline: timeline.getState(),
+      amperaLift: hero3d.getAmperaLiftState(),
+      heroCount: hero3d.getHeroCount(),
       currentPhoto: currentPhotoData ? Object.freeze({ title: currentPhotoData.title, thumbUrl: currentPhotoData.thumbUrl }) : null,
       lightboxOpen: lightbox.isOpen(),
       lastShareUrl,

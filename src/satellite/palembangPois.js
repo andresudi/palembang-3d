@@ -1,5 +1,5 @@
-// Curated 20-location Palembang POI catalog (10 Landmarks + 6 Culinary Icons + 4 LRT Stations)
-// + Persistent Explorer Passport (localStorage) for Phase 2.
+// Curated 26-location Palembang POI catalog (16 Landmarks + 6 Culinary Icons + 4 LRT Stations)
+// + Persistent Explorer Passport (localStorage).
 import { REAL_PRESETS } from './realLandmarks.js';
 
 const PRESET_BY_ID = new Map(REAL_PRESETS.map((p) => [p.id, p]));
@@ -51,10 +51,58 @@ export const PALEMBANG_POIS = [
   },
   fromPreset('pasar-16', 'Pasar Tepi Sungai Bersejarah'),
   fromPreset('kuto-besak', 'Benteng Kesultanan · Plaza Musi'),
+  {
+    id: 'tugu-belido',
+    category: 'landmark',
+    label: 'Tugu Ikan Belido',
+    title: 'Tugu Ikan Belido (Plaza BKB)',
+    zone: '2.9927° S, 104.7601° E · Tepian Sungai Musi',
+    center: [104.76008, -2.99268],
+    zoom: 17.9,
+    pitch: 64,
+    bearing: 58,
+    signature: 'Patung Ikan Belido Perak 12 m · Air Mancur Sungai Musi',
+    summary:
+      'Monumen ikan belido berlapis perak setinggi 12 meter di pelataran Plaza Benteng Kuto Besak yang menyemburkan air mancur melengkung langsung ke Sungai Musi — spot foto wajib wisatawan Palembang.',
+    note: 'Ikan belido (Chitala lopis) merupakan satwa endemik Sungai Musi dan bahan baku legendaris pempek tradisional.',
+  },
   fromPreset('walikota-kambang', 'Gedung Ledeng & Danau Taman'),
+  {
+    id: 'kambang-iwak',
+    category: 'landmark',
+    label: 'Kambang Iwak',
+    title: 'Taman Kambang Iwak Besak',
+    zone: '2.9898° S, 104.7465° E · Talang Semut',
+    center: [104.74645, -2.98979],
+    zoom: 17.0,
+    pitch: 60,
+    bearing: -18,
+    signature: 'Danau Taman Kota 1900 · Air Mancur Menari & Jogging Track',
+    summary:
+      'Taman dan danau bersejarah di jantung kawasan hijau Talang Semut yang menjadi pusat olahraga pagi, jalur jogging tepi air, serta atraksi air mancur menari warga Palembang.',
+    note: 'Perhatikan air mancur menari di tengah danau yang berubah warna-warni saat Senja dan Malam.',
+  },
   fromPreset('kampung-kapitan', 'Cagar Budaya Tepi 7 Ulu'),
   fromPreset('jakabaring', 'Kompleks Olahraga Internasional'),
+  {
+    id: 'danau-dayung',
+    category: 'landmark',
+    label: 'Danau Dayung JSC',
+    title: 'Danau Dayung Jakabaring (Venue Rowing Asian Games)',
+    zone: '3.0185° S, 104.7960° E · Jakabaring Sport City',
+    center: [104.79600, -3.01850],
+    zoom: 16.4,
+    pitch: 62,
+    bearing: 36,
+    signature: 'Lintasan Regatta 2,2 km · Balap Perahu Dayung 3D',
+    summary:
+      'Danau lintasan dayung bertaraf internasional di sisi timur Stadion Gelora Sriwijaya yang menjadi tuan rumah cabang Rowing & Canoeing Asian Games 2018.',
+    note: 'Saksikan 4 perahu dayung (rowing scull) berlomba menyusuri lintasan bui apung di depan tribun finis.',
+  },
   fromPreset('musi-iv', 'Jembatan Cable-Stayed Modern'),
+  fromPreset('musi-vi', 'Jembatan Pelengkung · Lampu LED RGB'),
+  fromPreset('masjid-cheng-ho', 'Masjid Pagoda Tionghoa-Islam · Jakabaring'),
+  fromPreset('bukit-siguntang', 'Situs Suci Sriwijaya Abad ke-7 · Kunang-Kunang'),
   fromPreset('pulau-kemaro', 'Delta Musi · Pagoda 9 Lantai'),
 
   // --- 6 Legendary Palembang Culinary Spots ---

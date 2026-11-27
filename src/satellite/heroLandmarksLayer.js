@@ -1,5 +1,13 @@
 import * as THREE from 'three';
 import * as maplibregl from 'maplibre-gl';
+import {
+  buildRealMusiVIModel,
+  buildRealTuguBelidoModel,
+  buildRealChengHoModel,
+  buildRealDanauDayungModel,
+  buildRealKambangIwakModel,
+  buildRealBukitSiguntangModel,
+} from './iconicLandmarksModels.js';
 
 // Road-deck geometry shared with the animated traffic layer so vehicles drive exactly on the
 // hero bridge models (deck span + sloped approach ramps), not on the river surface below.
@@ -21,6 +29,15 @@ export const HERO_BRIDGE_SPECS = [
     rampLen: 180,
     roadTop: 16.275,
     roadHalfWidth: 8,
+  },
+  {
+    id: 'musi-vi',
+    lngLat: [104.74992, -3.00437],
+    bearingDeg: 110.5,
+    spanHalf: 200,
+    rampLen: 140,
+    roadTop: 15.275,
+    roadHalfWidth: 6.3,
   },
 ];
 
@@ -67,28 +84,46 @@ function addApproachRamp(g, zStart, zEnd, roadY, deckW, roadW, mats) {
 }
 
 // True-scale Jembatan Ampera in real-world meters (towers ~63m tall, central lift span ~75m, deck ~360m)
+// Includes authentic 1965 Vertical-Lift central span, counterweights & passing heritage tall ship!
 function buildRealAmperaModel(mats) {
   const g = new THREE.Group();
   const deckY = 14;
   const spanLen = 350;
+  const liftHalf = 36.2;
 
-  // Main red steel bridge deck & asphalt road
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(24, 2.4, spanLen), mats.steelRed);
-  deck.position.set(0, deckY - 1.1, 0);
-  g.add(deck);
+  // Flanking static decks (North & South approaches outside the central 72m vertical-lift span)
+  const flankLen = spanLen / 2 - liftHalf;
+  for (const dir of [-1, 1]) {
+    const cz = dir * (liftHalf + flankLen / 2);
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(24, 2.4, flankLen), mats.steelRed);
+    deck.position.set(0, deckY - 1.1, cz);
+    g.add(deck);
 
-  const road = new THREE.Mesh(new THREE.BoxGeometry(17.5, 0.35, spanLen), mats.asphalt);
-  road.position.set(0, deckY + 0.15, 0);
-  g.add(road);
+    const road = new THREE.Mesh(new THREE.BoxGeometry(17.5, 0.35, flankLen), mats.asphalt);
+    road.position.set(0, deckY + 0.15, cz);
+    g.add(road);
+  }
+
+  // Liftable 72m central span group (deck + asphalt + central steel side trusses)
+  const liftSpanGroup = new THREE.Group();
+  const centerDeck = new THREE.Mesh(new THREE.BoxGeometry(24, 2.4, liftHalf * 2), mats.steelRed);
+  centerDeck.position.set(0, deckY - 1.1, 0);
+  liftSpanGroup.add(centerDeck);
+  const centerRoad = new THREE.Mesh(new THREE.BoxGeometry(17.5, 0.35, liftHalf * 2), mats.asphalt);
+  centerRoad.position.set(0, deckY + 0.15, 0);
+  liftSpanGroup.add(centerRoad);
+  g.add(liftSpanGroup);
+
+  // Synchronized counterweights & elastic lift cables inside the twin 66m towers
+  const counterweights = [];
+  const liftCables = [];
 
   // Twin iconic 66m brick-red H-portal towers spaced 75m apart (z = -37.5 and +37.5)
   for (const tz of [-37.5, 37.5]) {
-    // Concrete river pier + cutwater
     const pier = new THREE.Mesh(new THREE.BoxGeometry(28, 18, 12.5), mats.concrete);
     pier.position.set(0, 5, tz);
     g.add(pier);
 
-    // Steel tower legs rising to 66m (encasing OSM tower footprint cleanly)
     const legX = 12.0;
     const legH = 54;
     for (const sx of [-1, 1]) {
@@ -101,7 +136,6 @@ function buildRealAmperaModel(mats) {
       g.add(led);
     }
 
-    // Crossbeams & X-bracing
     const levels = [27, 39, 51, 63];
     for (const ly of levels) {
       const bar = new THREE.Mesh(new THREE.BoxGeometry(legX * 2 + 2.2, 2.2, 3.2), mats.steelRed);
@@ -113,7 +147,6 @@ function buildRealAmperaModel(mats) {
       addBeam(g, new THREE.Vector3(legX - 1, levels[i], tz), new THREE.Vector3(-legX + 1, levels[i + 1], tz), 0.85, mats.steelDarkRed);
     }
 
-    // Crown sheave housing + gold cap + aviation beacons
     const crown = new THREE.Mesh(new THREE.BoxGeometry(28.5, 4.8, 6.8), mats.steelRed);
     crown.position.set(0, 67.5, tz);
     g.add(crown);
@@ -128,16 +161,26 @@ function buildRealAmperaModel(mats) {
       g.add(beacon);
     }
 
-    // Vertical lift cables down to central span
-    const innerZ = tz > 0 ? 33 : -33;
+    // Concrete counterweight block inside tower portal (descends as central span rises!)
+    const cw = new THREE.Mesh(new THREE.BoxGeometry(16, 4.2, 3.8), mats.concrete);
+    cw.position.set(0, 56, tz);
+    g.add(cw);
+    counterweights.push(cw);
+
+    // Dynamic vertical lift cables from crown sheaves (y=65) down to central span top chord (y=24+liftY)
+    const innerZ = tz > 0 ? 34.5 : -34.5;
     for (const sx of [-1, 1]) {
-      addBeam(g, new THREE.Vector3(sx * 11.2, 65, tz), new THREE.Vector3(sx * 11.2, 24, innerZ), 0.28, mats.cable);
-      addBeam(g, new THREE.Vector3(sx * 11.2, 65, tz), new THREE.Vector3(sx * 11.2, 24, tz > 0 ? 22 : -22), 0.24, mats.cable);
+      const cMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 1, 6), mats.cable);
+      cMesh.position.set(sx * 10.6, 44.5, innerZ);
+      cMesh.scale.set(1, 41, 1);
+      g.add(cMesh);
+      liftCables.push(cMesh);
     }
   }
 
-  // Steel side trusses along central lift span & flanking river spans (-115m..+115m)
-  for (const [z0, z1] of [[-110, -39], [-36, 36], [39, 110]]) {
+  // Steel side trusses along central lift span (inside liftSpanGroup) & flanking river spans (static)
+  for (const [z0, z1, isCenter] of [[-110, -39, false], [-35.5, 35.5, true], [39, 110, false]]) {
+    const target = isCenter ? liftSpanGroup : g;
     const len = z1 - z0;
     const mid = (z0 + z1) / 2;
     const topY = 24;
@@ -146,15 +189,15 @@ function buildRealAmperaModel(mats) {
     for (const sx of [-10.5, 10.5]) {
       const topChord = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.0, len), mats.steelRed);
       topChord.position.set(sx, topY, mid);
-      g.add(topChord);
+      target.add(topChord);
       for (let i = 0; i <= bays; i++) {
         const z = z0 + i * step;
         const post = new THREE.Mesh(new THREE.BoxGeometry(0.7, topY - deckY, 0.7), mats.steelRed);
         post.position.set(sx, (topY + deckY) / 2, z);
-        g.add(post);
+        target.add(post);
         if (i < bays) {
           addBeam(
-            g,
+            target,
             new THREE.Vector3(sx, i % 2 === 0 ? deckY : topY, z),
             new THREE.Vector3(sx, i % 2 === 0 ? topY : deckY, z + step),
             0.55,
@@ -166,7 +209,7 @@ function buildRealAmperaModel(mats) {
     for (let i = 1; i < bays; i++) {
       const cross = new THREE.Mesh(new THREE.BoxGeometry(21, 0.8, 0.8), mats.steelRed);
       cross.position.set(0, topY, z0 + i * step);
-      g.add(cross);
+      target.add(cross);
     }
   }
 
@@ -182,7 +225,57 @@ function buildRealAmperaModel(mats) {
   addApproachRamp(g, spanLen / 2, spanLen / 2 + 160, deckY + 0.15, 22, 17.5, mats);
   addApproachRamp(g, -spanLen / 2, -spanLen / 2 - 160, deckY + 0.15, 22, 17.5, mats);
 
-  return g;
+  // Heritage Tall-Mast Pinisi Sailing Ship (glides under Ampera along local X when span is lifted!)
+  const tallShip = new THREE.Group();
+  const sHull = new THREE.Mesh(new THREE.BoxGeometry(46, 5.2, 11.5), mats.darkWood);
+  sHull.position.y = 2.6;
+  tallShip.add(sHull);
+  const sBow = new THREE.Mesh(new THREE.ConeGeometry(6.2, 14, 4), mats.darkWood);
+  sBow.rotation.z = -Math.PI / 2;
+  sBow.position.set(29, 3.4, 0);
+  tallShip.add(sBow);
+  const sDeck = new THREE.Mesh(new THREE.BoxGeometry(42, 0.8, 10.6), mats.creamWall);
+  sDeck.position.y = 5.4;
+  tallShip.add(sDeck);
+  const sCabin = new THREE.Mesh(new THREE.BoxGeometry(12, 4.2, 8.2), mats.whiteConcrete);
+  sCabin.position.set(-12, 7.8, 0);
+  tallShip.add(sCabin);
+  const sLamp = new THREE.Mesh(new THREE.BoxGeometry(12.6, 1.4, 8.6), mats.warmGlow);
+  sLamp.position.set(-12, 8.2, 0);
+  tallShip.add(sLamp);
+  // Twin tall wooden masts (29m tall — requires Ampera's raised 38m clearance!)
+  for (const mx of [-5, 11]) {
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.62, 26, 8), mats.darkWood);
+    mast.position.set(mx, 18.2, 0);
+    tallShip.add(mast);
+    const sail = new THREE.Mesh(new THREE.BoxGeometry(11.5, 16, 0.45), mats.creamWall);
+    sail.position.set(mx + 2.5, 19.5, 0);
+    sail.rotation.y = 0.24;
+    tallShip.add(sail);
+  }
+  tallShip.visible = false;
+  tallShip.position.set(-220, 0.2, 0);
+  g.add(tallShip);
+
+  function updateLift(liftMeters, shipX, shipVisible) {
+    liftSpanGroup.position.y = liftMeters;
+    for (const cw of counterweights) {
+      cw.position.y = 56 - liftMeters * 0.92;
+    }
+    const cableTop = 65;
+    const cableBot = 24 + liftMeters;
+    const cableLen = Math.max(2, cableTop - cableBot);
+    for (const c of liftCables) {
+      c.position.y = (cableTop + cableBot) * 0.5;
+      c.scale.set(1, cableLen, 1);
+    }
+    tallShip.visible = shipVisible;
+    if (shipVisible) {
+      tallShip.position.x = shipX;
+    }
+  }
+
+  return { model: g, updateLift };
 }
 
 // True-scale Jembatan Musi IV in real-world meters (cable-stayed white pylons ~58m tall)
@@ -605,14 +698,22 @@ export function createHeroLandmarksCustomLayer() {
     }),
   };
 
-  // Three independently anchored Three.js scenes (zero Float32 precision loss across 6+ km!)
+  const amperaBuilt = buildRealAmperaModel(mats);
+  const musiVIBuilt = buildRealMusiVIModel(mats);
+  const belidoBuilt = buildRealTuguBelidoModel(mats);
+  const chengHoBuilt = buildRealChengHoModel(mats);
+  const dayungBuilt = buildRealDanauDayungModel(mats);
+  const kambangBuilt = buildRealKambangIwakModel(mats);
+  const siguntangBuilt = buildRealBukitSiguntangModel(mats);
+
+  // Independently anchored Three.js scenes (zero Float32 precision loss across the entire city!)
   const entries = [
     {
       name: 'Ampera',
       lngLat: [104.76340, -2.99194],
       altitude: 0,
       bearingDeg: 147.8,
-      model: buildRealAmperaModel(mats),
+      model: amperaBuilt.model,
     },
     {
       name: 'MusiIV',
@@ -620,6 +721,54 @@ export function createHeroLandmarksCustomLayer() {
       altitude: 0,
       bearingDeg: 159.5,
       model: buildRealMusiIVModel(mats),
+    },
+    {
+      name: 'MusiVI',
+      lngLat: [104.74992, -3.00437],
+      altitude: 0,
+      bearingDeg: 110.5,
+      model: musiVIBuilt.model,
+      update: musiVIBuilt.update,
+    },
+    {
+      name: 'TuguBelido',
+      lngLat: [104.76008, -2.99268],
+      altitude: 0,
+      bearingDeg: 142,
+      model: belidoBuilt.model,
+      update: belidoBuilt.update,
+    },
+    {
+      name: 'MasjidChengHo',
+      lngLat: [104.78071, -3.02422],
+      altitude: 0,
+      bearingDeg: 12,
+      model: chengHoBuilt.model,
+      update: chengHoBuilt.update,
+    },
+    {
+      name: 'DanauDayung',
+      lngLat: [104.79550, -3.01760],
+      altitude: 0,
+      bearingDeg: 142,
+      model: dayungBuilt.model,
+      update: dayungBuilt.update,
+    },
+    {
+      name: 'KambangIwak',
+      lngLat: [104.74645, -2.98979],
+      altitude: 0,
+      bearingDeg: 0,
+      model: kambangBuilt.model,
+      update: kambangBuilt.update,
+    },
+    {
+      name: 'BukitSiguntang',
+      lngLat: [104.72555, -2.99722],
+      altitude: 0,
+      bearingDeg: 20,
+      model: siguntangBuilt.model,
+      update: siguntangBuilt.update,
     },
     {
       name: 'KemaroPagoda',
@@ -680,10 +829,61 @@ export function createHeroLandmarksCustomLayer() {
   let camera = null;
   let mapRef = null;
   let baseBeaconIntensity = 0.6;
+  let currentLightingMode = 'siang';
+  let animationsEnabled = true;
+  let qualityMode = 'high';
+  let animElapsedSec = 0;
+  let lastRenderMs = 0;
+
+  // Ampera 1965 Vertical-Lift state
+  let amperaLiftTarget = false;
+  let amperaLiftProgress = 0; // 0 = closed, 1 = fully raised (+24m)
+  let amperaShipProgress = 0; // 0..1 glides tall ship from x=-220 to +220
+  const liftListeners = new Set();
+
+  function notifyLift() {
+    const st = getAmperaLiftState();
+    for (const fn of liftListeners) fn(st);
+  }
+
+  function getAmperaLiftState() {
+    return Object.freeze({
+      active: amperaLiftTarget,
+      progress: Number(amperaLiftProgress.toFixed(3)),
+      liftMeters: Number((amperaLiftProgress * 24).toFixed(1)),
+      shipPassing: amperaLiftProgress > 0.72,
+    });
+  }
+
+  function setAmperaLift(flag) {
+    amperaLiftTarget = Boolean(flag);
+    if (amperaLiftTarget && amperaLiftProgress < 0.05) {
+      amperaShipProgress = 0;
+    }
+    notifyLift();
+    if (mapRef) mapRef.triggerRepaint();
+  }
+
+  function toggleAmperaLift() {
+    setAmperaLift(!amperaLiftTarget);
+    return amperaLiftTarget;
+  }
+
+  function setAnimationsEnabled(flag) {
+    animationsEnabled = Boolean(flag);
+    lastRenderMs = 0;
+    if (mapRef) mapRef.triggerRepaint();
+  }
+
+  function setQuality(q) {
+    qualityMode = q === 'eco' ? 'eco' : 'high';
+    if (mapRef) mapRef.triggerRepaint();
+  }
 
   const rotX = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
 
   function setLightingMode(mode) {
+    currentLightingMode = mode;
     const isNight = mode === 'malam';
     const isSunset = mode === 'senja';
     const nightGlow = isNight ? 1.0 : isSunset ? 0.72 : 0.0;
@@ -736,8 +936,39 @@ export function createHeroLandmarksCustomLayer() {
       const projArr = options?.defaultProjectionData?.mainMatrix || options?.modelViewProjectionMatrix || options;
       const m = new THREE.Matrix4().fromArray(projArr);
 
+      const now = performance.now();
+      const rawDt = lastRenderMs > 0 ? Math.max(0.001, (now - lastRenderMs) / 1000) : 0.016;
+      const dt = Math.min(0.12, rawDt);
+      const liftDt = Math.min(0.45, rawDt);
+      lastRenderMs = now;
+      if (animationsEnabled) {
+        animElapsedSec += dt;
+      }
+
+      // Smoothly animate Ampera 1965 Vertical-Lift central span & passing heritage Pinisi ship
+      const liftTargetVal = amperaLiftTarget ? 1 : 0;
+      const liftMoving = Math.abs(amperaLiftProgress - liftTargetVal) > 0.001;
+      if (liftMoving) {
+        const dir = liftTargetVal > amperaLiftProgress ? 1 : -1;
+        amperaLiftProgress = Math.max(0, Math.min(1, amperaLiftProgress + dir * liftDt * 0.45));
+      }
+      if (amperaLiftProgress > 0.72) {
+        amperaShipProgress = (amperaShipProgress + liftDt * 0.14) % 1;
+      }
+      const smoothLift = amperaLiftProgress * amperaLiftProgress * (3 - 2 * amperaLiftProgress);
+      const shipX = -220 + amperaShipProgress * 440;
+      amperaBuilt.updateLift(smoothLift * 24, shipX, amperaLiftProgress > 0.65);
+
+      // Update all 6 bespoke iconic landmark animations
+      const animCtx = { lightingMode: currentLightingMode, quality: qualityMode };
+      for (const item of scenes) {
+        if (typeof item.update === 'function') {
+          item.update(animElapsedSec, animCtx);
+        }
+      }
+
       // Gentle aviation warning beacon pulse on Ampera's twin 66m towers
-      const pulse = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(performance.now() * 0.0045));
+      const pulse = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(now * 0.0045));
       mats.beacon.emissiveIntensity = baseBeaconIntensity * (0.55 + pulse * 0.9);
 
       renderer.resetState();
@@ -762,8 +993,25 @@ export function createHeroLandmarksCustomLayer() {
         camera.projectionMatrix = m.clone().multiply(l);
         renderer.render(item.scene, camera);
       }
+
+      if (mapRef && (liftMoving || amperaLiftTarget)) {
+        mapRef.triggerRepaint();
+      }
     },
   };
 
-  return { layer: customLayer, setLightingMode };
+  return {
+    layer: customLayer,
+    setLightingMode,
+    setAnimationsEnabled,
+    setQuality,
+    setAmperaLift,
+    toggleAmperaLift,
+    getAmperaLiftState,
+    onLiftChange(fn) {
+      liftListeners.add(fn);
+      return () => liftListeners.delete(fn);
+    },
+    getHeroCount: () => scenes.length,
+  };
 }

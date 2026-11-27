@@ -207,6 +207,48 @@ const POI_EN = {
       'A legendary river delta island ~6.3 km east of Ampera Bridge featuring the 45-meter nine-story octagonal Pagoda and Hok Tjing Rio Temple.',
     note: 'Activate the Fireworks & Lanterns Festival to see glowing sky lanterns drift over Kemaro Island.',
   },
+  'tugu-belido': {
+    title: 'Belido Fish Monument (Plaza BKB)',
+    signature: '12 m Silver Belido Statue · Musi River Fountain',
+    summary:
+      'An iconic 12-meter silver-plated Belido fish monument on Plaza Kuto Besak spraying a graceful arching water fountain straight into the Musi River.',
+    note: 'The endemic Belido knifefish is the traditional symbol of Sungai Musi and classic Palembang pempek.',
+  },
+  'kambang-iwak': {
+    title: 'Kambang Iwak Besak Lakeside Park',
+    signature: '1900 Heritage Lake · Dancing Fountain & Jogging Track',
+    summary:
+      'Palembang’s beloved central lakeside park in Talang Semut, lively with morning joggers circling the water and a choreographed musical fountain at the center.',
+    note: 'Switch to Sunset or Night to watch the dancing lake fountain glow in shifting colors.',
+  },
+  'danau-dayung': {
+    title: 'Jakabaring Rowing Lake (Asian Games Venue)',
+    signature: '2.2 km Regatta Course · Live Rowing Sculls',
+    summary:
+      'An international 2.2-kilometer rowing and canoeing regatta lake east of Gelora Sriwijaya Stadium built for the 2018 Asian Games.',
+    note: 'Watch 4 animated racing rowing sculls sprint down the buoyed regatta lanes past the finish tower.',
+  },
+  'musi-vi': {
+    title: 'Musi VI Bridge (RGB Arch Lightshow)',
+    signature: '925 m Steel Tied-Arch · Night RGB LEDs',
+    summary:
+      'A sleek 925-meter steel tied-arch bridge linking Ilir Barat II and Seberang Ulu I, famous across Palembang for its flowing multicolor RGB night lighting.',
+    note: 'Switch to Sunset or Night to see the animated RGB light wave sweep across the steel arches.',
+  },
+  'masjid-cheng-ho': {
+    title: 'Muhammad Cheng Ho Mosque (Jakabaring)',
+    signature: 'Sino-Islamic Pagoda Architecture · Swaying Lanterns',
+    summary:
+      'A distinctive Sino-Islamic mosque in Jakabaring blending Chinese pagoda tiers, emerald-crimson roofs, twin 5-story minarets, a paifang archway, and swaying red lanterns.',
+    note: 'Just ~430 m west of Jakabaring LRT Station and ~900 m from Gelora Sriwijaya Stadium.',
+  },
+  'bukit-siguntang': {
+    title: 'Bukit Siguntang Archaeological Hill (Srivijaya)',
+    signature: '7th-Century Srivijaya Sanctuary · Night Fireflies',
+    summary:
+      'Palembang’s highest hill and sacred 7th-century Srivijaya sanctuary where the monumental Amaravati Buddha statue and royal Palembang tombs stand amid lush trees.',
+    note: 'Switch to Sunset or Night to see golden Srivijaya fireflies drifting gently around the hilltop pendopo.',
+  },
   'kuliner-pempek-candy': {
     title: 'Pempek Candy (Jl. Jenderal Sudirman)',
     signature: 'Kapal Selam · Lenjer · Sweet-Spicy Cuko',
