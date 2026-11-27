@@ -235,8 +235,36 @@ try {
   await page.screenshot({ path: path.join(artifactsDir, 'preview-sat-kuliner.png') });
   await page.click('[data-audio-btn="true"]');
 
+  // Phase 3: Cuaca & GIS tab -> Rain 3D + Musi Tide (+2.2m) + GIS Distance Measure + Live Open-Meteo
+  await page.click('[data-preset-btn="overview"]');
+  await page.waitForTimeout(1400);
+  await waitForMapSettled(page);
+  await page.click('[data-drawer-tab="gis"]');
+  await page.waitForTimeout(200);
+  await page.click('[data-weather-btn="hujan"]');
+  await page.$eval('[data-tide-slider]', (el) => {
+    el.value = '2.2';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.click('[data-measure-preset="ampera-kemaro"]');
+  await page.waitForTimeout(700);
+  const phase3Check = await page.evaluate(() => ({
+    weather: window.__PALEMBANG_3D__?.weather,
+    tide: window.__PALEMBANG_3D__?.tide,
+    measure: window.__PALEMBANG_3D__?.measure,
+  }));
+  if (phase3Check.weather?.mode !== 'hujan' || phase3Check.tide?.meters !== 2.2 || !(phase3Check.measure?.distanceM > 5000)) {
+    throw new Error(`Phase 3 GIS/Weather check failed: ${JSON.stringify(phase3Check)}`);
+  }
+  await page.screenshot({ path: path.join(artifactsDir, 'preview-sat-gis-rain-tide.png') });
+
+  // Also test Live Open-Meteo sync
+  await page.click('[data-weather-sync]');
+  await page.waitForFunction(() => Boolean(window.__PALEMBANG_3D__?.weather?.live?.tempC !== undefined), null, { timeout: 10000 });
+  const liveWeather = await page.evaluate(() => window.__PALEMBANG_3D__?.weather?.live);
+
   const telemetry = await page.evaluate(() => window.__PALEMBANG_3D__);
-  console.log(JSON.stringify({ status: 'PASS', animationMoved, drawerOpened, rideLrtMoved, boatMode, droneMoved, kulinerState, phase2Check, animT0, animT1, telemetry, consoleErrors, pageErrors }, null, 2));
+  console.log(JSON.stringify({ status: 'PASS', animationMoved, drawerOpened, rideLrtMoved, boatMode, droneMoved, kulinerState, phase2Check, phase3Check, liveWeather, animT0, animT1, telemetry, consoleErrors, pageErrors }, null, 2));
 } finally {
   if (browser) await browser.close().catch(() => {});
   if (!previewProc.killed) previewProc.kill('SIGTERM');

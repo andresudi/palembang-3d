@@ -11,6 +11,7 @@ export function createExploreDrawer({
   cameraModes,
   passport,
   ambience,
+  weatherGis,
   onSelectPoi,
   onCategoryChange,
   onToggleAudio,
@@ -353,26 +354,164 @@ export function createExploreDrawer({
   explorePanel.append(passportCard, catRow, searchInput, poiList, audioCard);
   tabPanels.set('explore', explorePanel);
 
-  // === TAB 3: Cuaca & GIS (Quick lighting + Phase 3 preview) ===
+  // === TAB 3: Cuaca & GIS (Phase 3: Live Open-Meteo Weather + 3D Rain + Musi Tide + GIS Measure) ===
   const gisPanel = document.createElement('div');
   gisPanel.className = 'drawer-panel';
   gisPanel.innerHTML = `
-    <p class="drawer-section-label">Suasana Cepat</p>
-    <div class="layer-toggle-row" data-gis-lighting>
-      <button type="button" class="toggle-btn" data-quick-light="siang">Siang</button>
-      <button type="button" class="toggle-btn" data-quick-light="senja">Senja</button>
-      <button type="button" class="toggle-btn" data-quick-light="malam">Malam</button>
+    <p class="drawer-section-label">Cuaca Palembang (Open-Meteo · Gratis)</p>
+    <div class="gis-card">
+      <div class="weather-live-head">
+        <div class="weather-live-copy">
+          <strong data-weather-title>☀️ Cerah (Simulasi)</strong>
+          <small data-weather-meta>Klik Sync Live untuk cuaca aktual Palembang</small>
+        </div>
+        <button type="button" class="toggle-btn weather-sync-btn" data-weather-sync>Sync Live</button>
+      </div>
+      <div class="layer-toggle-row weather-mode-row">
+        <button type="button" class="toggle-btn active" data-weather-btn="cerah">Cerah</button>
+        <button type="button" class="toggle-btn" data-weather-btn="berawan">Berawan</button>
+        <button type="button" class="toggle-btn" data-weather-btn="hujan">Hujan 3D</button>
+      </div>
     </div>
-    <p class="drawer-section-label">Segera Hadir (Fase 3 · Zero API Key)</p>
-    <div class="roadmap-list">
-      <div class="roadmap-item"><strong>Cuaca Live Palembang & Hujan 3D</strong><small>Data Open-Meteo real-time + partikel hujan tropis</small></div>
-      <div class="roadmap-item"><strong>Simulasi Pasang Sungai Musi</strong><small>Slider elevasi genangan 0 – 3,5 meter</small></div>
-      <div class="roadmap-item"><strong>Alat Ukur Jarak 2 Titik</strong><small>Hitung jarak nyata & estimasi waktu tempuh</small></div>
+
+    <p class="drawer-section-label">Simulasi Pasang Sungai Musi</p>
+    <div class="gis-card">
+      <div class="tide-head">
+        <strong>Kenaikan Muka Air</strong>
+        <div class="tide-right">
+          <span class="tide-val" data-tide-val>+0.0 m</span>
+          <button type="button" class="passport-reset" data-tide-reset>Normal</button>
+        </div>
+      </div>
+      <input type="range" class="tide-slider" min="0" max="3.5" step="0.1" value="0" data-tide-slider aria-label="Simulasi kenaikan muka air Sungai Musi" />
+      <p class="tide-status level-normal" data-tide-status>Normal · Muka air standar Sungai Musi</p>
+    </div>
+
+    <p class="drawer-section-label">Alat Ukur Jarak (2 Titik)</p>
+    <div class="gis-card">
+      <div class="measure-top">
+        <button type="button" class="toggle-btn measure-toggle" data-measure-toggle>Mulai Ukur (Klik Peta)</button>
+        <button type="button" class="passport-reset" data-measure-clear>Hapus</button>
+      </div>
+      <div class="measure-presets">
+        <button type="button" class="mini-chip" data-measure-preset="ampera-kemaro">Ampera ↔ Kemaro</button>
+        <button type="button" class="mini-chip" data-measure-preset="ampera-jakabaring">Ampera ↔ Jakabaring</button>
+      </div>
+      <div class="measure-result" data-measure-result>
+        <small>Aktifkan lalu klik Titik A &amp; Titik B di peta 3D.</small>
+      </div>
     </div>
   `;
-  for (const btn of gisPanel.querySelectorAll('[data-quick-light]')) {
-    btn.addEventListener('click', () => onSelectLighting(btn.dataset.quickLight));
+
+  const weatherTitleEl = gisPanel.querySelector('[data-weather-title]');
+  const weatherMetaEl = gisPanel.querySelector('[data-weather-meta]');
+  const weatherSyncBtn = gisPanel.querySelector('[data-weather-sync]');
+  const weatherModeBtns = [...gisPanel.querySelectorAll('[data-weather-btn]')];
+  const tideValEl = gisPanel.querySelector('[data-tide-val]');
+  const tideSlider = gisPanel.querySelector('[data-tide-slider]');
+  const tideStatusEl = gisPanel.querySelector('[data-tide-status]');
+  const tideResetBtn = gisPanel.querySelector('[data-tide-reset]');
+  const measureToggleBtn = gisPanel.querySelector('[data-measure-toggle]');
+  const measureClearBtn = gisPanel.querySelector('[data-measure-clear]');
+  const measureResultEl = gisPanel.querySelector('[data-measure-result]');
+
+  weatherSyncBtn.addEventListener('click', async () => {
+    weatherSyncBtn.textContent = 'Memuat...';
+    weatherSyncBtn.disabled = true;
+    await weatherGis.syncLiveWeather();
+    weatherSyncBtn.textContent = 'Sync Live';
+    weatherSyncBtn.disabled = false;
+  });
+
+  for (const btn of weatherModeBtns) {
+    btn.addEventListener('click', () => {
+      const m = btn.dataset.weatherBtn;
+      weatherGis.setWeatherMode(m, { source: 'manual', storm: m === 'hujan' });
+    });
   }
+
+  tideSlider.addEventListener('input', () => {
+    weatherGis.setTideMeters(Number(tideSlider.value));
+  });
+  tideResetBtn.addEventListener('click', () => {
+    tideSlider.value = '0';
+    weatherGis.setTideMeters(0);
+  });
+
+  measureToggleBtn.addEventListener('click', () => {
+    const next = !weatherGis.getMeasureState().active;
+    weatherGis.setMeasureActive(next);
+  });
+  measureClearBtn.addEventListener('click', () => {
+    weatherGis.clearMeasurePoints();
+  });
+
+  const MEASURE_PRESETS = {
+    'ampera-kemaro': [
+      [104.76340, -2.99194],
+      [104.81312, -2.98038],
+    ],
+    'ampera-jakabaring': [
+      [104.76340, -2.99194],
+      [104.78910, -3.02150],
+    ],
+  };
+  for (const btn of gisPanel.querySelectorAll('[data-measure-preset]')) {
+    btn.addEventListener('click', () => {
+      const pair = MEASURE_PRESETS[btn.dataset.measurePreset];
+      if (pair) weatherGis.setMeasurePoints(pair[0], pair[1]);
+    });
+  }
+
+  function syncWeather(state) {
+    for (const btn of weatherModeBtns) {
+      btn.classList.toggle('active', btn.dataset.weatherBtn === state.mode);
+    }
+    const modeLabels = { cerah: '☀️ Cerah', berawan: '⛅ Berawan', hujan: '🌧️ Hujan Tropis 3D' };
+    if (state.source === 'live' && state.live) {
+      weatherTitleEl.textContent = `${state.live.icon} ${state.live.label} · ${state.live.tempC}°C`;
+      weatherMetaEl.textContent = `Live Palembang · Lembap ${state.live.humidity}% · Angin ${state.live.windKmh} km/j`;
+    } else if (state.error) {
+      weatherTitleEl.textContent = modeLabels[state.mode] || '☀️ Cerah';
+      weatherMetaEl.textContent = `Mode simulasi (${state.error})`;
+    } else {
+      weatherTitleEl.textContent = `${modeLabels[state.mode] || '☀️ Cerah'} (Simulasi)`;
+      weatherMetaEl.textContent =
+        state.mode === 'hujan'
+          ? 'Partikel hujan 3D & suara hujan aktif'
+          : 'Klik Sync Live untuk cuaca aktual Palembang';
+    }
+  }
+
+  function syncTide(state) {
+    tideValEl.textContent = `+${state.meters.toFixed(1)} m`;
+    tideSlider.value = String(state.meters);
+    tideStatusEl.textContent = state.statusText;
+    tideStatusEl.className = `tide-status level-${state.level}`;
+  }
+
+  function syncMeasure(state) {
+    measureToggleBtn.classList.toggle('active', state.active);
+    measureToggleBtn.textContent = state.active ? 'Mode Ukur Aktif' : 'Mulai Ukur (Klik Peta)';
+    if (state.formatted && state.eta) {
+      measureResultEl.innerHTML = `
+        <div class="measure-dist">Jarak Garis Lurus: <strong>${state.formatted}</strong></div>
+        <div class="measure-eta-grid">
+          <span>🚶 ${state.eta.walk}</span>
+          <span>🚗 ${state.eta.car}</span>
+          <span>🚆 ${state.eta.lrt}</span>
+          <span>🚤 ${state.eta.ketek}</span>
+        </div>
+      `;
+    } else if (state.active && state.hasA) {
+      measureResultEl.innerHTML = `<small>Titik A ditetapkan — klik Titik B di peta 3D.</small>`;
+    } else if (state.active) {
+      measureResultEl.innerHTML = `<small>Klik Titik A di mana saja pada peta 3D.</small>`;
+    } else {
+      measureResultEl.innerHTML = `<small>Aktifkan lalu klik Titik A &amp; Titik B di peta 3D.</small>`;
+    }
+  }
+
   tabPanels.set('gis', gisPanel);
 
   body.append(ridePanel, explorePanel, gisPanel);
@@ -550,6 +689,9 @@ export function createExploreDrawer({
     syncTrafficToggle,
     syncPassport,
     syncAudio,
+    syncWeather,
+    syncTide,
+    syncMeasure,
     showToast,
   };
 }

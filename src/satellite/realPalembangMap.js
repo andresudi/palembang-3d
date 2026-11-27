@@ -8,6 +8,7 @@ import { createHeroLandmarksCustomLayer } from './heroLandmarksLayer.js';
 import { createAnimatedTrafficLayer } from './animatedTrafficLayer.js';
 import { createCameraModesController } from './cameraModes.js';
 import { createExploreDrawer } from './exploreDrawer.js';
+import { createWeatherGisEngine } from './weatherGisEngine.js';
 
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
@@ -371,6 +372,22 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   hint.textContent = 'Seret geser · Klik kanan putar/miring 3D · Buka "Eksplorasi" untuk Naik LRT/Perahu, Tur & Drone';
 
   let exploreDrawer;
+  const weatherGis = createWeatherGisEngine({
+    map,
+    rootEl,
+    ambience,
+    onWeatherChange(state) {
+      exploreDrawer?.syncWeather(state);
+      applyLighting(activeLighting);
+    },
+    onTideChange(state) {
+      exploreDrawer?.syncTide(state);
+    },
+    onMeasureChange(state) {
+      exploreDrawer?.syncMeasure(state);
+    },
+  });
+
   const cameraModes = createCameraModesController({
     map,
     traffic3d,
@@ -404,6 +421,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     cameraModes,
     passport,
     ambience,
+    weatherGis,
     onSelectPoi(poi) {
       selectPoi(poi);
     },
@@ -565,15 +583,37 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     }
 
     const theme = LIGHTING_THEMES[key];
+    const wMode = weatherGis.getWeatherState().mode;
+    const isRain = wMode === 'hujan';
+    const isCloudy = wMode === 'berawan';
+
     hero3d.setLightingMode(key);
     traffic3d.setLightingMode(key);
+    weatherGis.setLightingMode(key);
     ambience.setMood(key);
 
     if (map.getLayer('satellite-imagery')) {
-      map.setSky(theme.sky);
+      const sky = isRain
+        ? {
+            ...theme.sky,
+            'sky-color': key === 'malam' ? '#070e18' : '#4a5d6e',
+            'horizon-color': key === 'malam' ? '#1a2736' : '#8da0b0',
+            'fog-color': key === 'malam' ? '#13202e' : '#8fa2b2',
+            'fog-ground-blend': 0.35,
+          }
+        : isCloudy
+          ? {
+              ...theme.sky,
+              'horizon-color': key === 'malam' ? theme.sky['horizon-color'] : '#b2c6d6',
+              'fog-color': key === 'malam' ? theme.sky['fog-color'] : '#b0c4d4',
+            }
+          : theme.sky;
+      map.setSky(sky);
       map.setLight(theme.light);
-      map.setPaintProperty('satellite-imagery', 'raster-brightness-max', theme.satBrightnessMax);
-      map.setPaintProperty('satellite-imagery', 'raster-saturation', theme.satSaturation);
+      const rainDim = isRain ? 0.82 : isCloudy ? 0.92 : 1.0;
+      const rainDesat = isRain ? -0.22 : isCloudy ? -0.08 : 0.0;
+      map.setPaintProperty('satellite-imagery', 'raster-brightness-max', Number((theme.satBrightnessMax * rainDim).toFixed(2)));
+      map.setPaintProperty('satellite-imagery', 'raster-saturation', Number((theme.satSaturation + rainDesat).toFixed(2)));
       map.setPaintProperty('satellite-imagery', 'raster-contrast', theme.satContrast);
       if (map.getLayer('osm-buildings-3d')) {
         map.setPaintProperty('osm-buildings-3d', 'fill-extrusion-color', theme.bldgColor);
@@ -597,6 +637,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     if (!map.getLayer('palembang-live-traffic-3d')) {
       map.addLayer(traffic3d.layer, 'road-labels');
     }
+    weatherGis.onStyleLoad();
     applyLighting(activeLighting);
   });
 
@@ -640,6 +681,9 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       activePinCategory,
       visiblePinCount: markerObjs.filter((m) => m.el.style.display !== 'none').length,
       passport: passport.getSummary(),
+      weather: weatherGis.getWeatherState(),
+      tide: weatherGis.getTideState(),
+      measure: weatherGis.getMeasureState(),
       drawerOpen: exploreDrawer.isOpen(),
       cameraMode: cameraModes.getState().mode,
       tweening: isFlying,
@@ -663,6 +707,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
 
   return function cleanup() {
     cameraModes.cleanup();
+    weatherGis.cleanup();
     ambience.cleanup();
     traffic3d.setEnabled(false);
     for (const m of markerObjs) m.marker.remove();

@@ -36,9 +36,9 @@ Switch seamlessly with one click in the top bar between:
 | :---: | :---: |
 | ![Exploration Drawer](docs/screenshots/sat-drawer.png) | ![Palembang Culinary Explorer & Passport](docs/screenshots/sat-kuliner.png) |
 
-| Ride-Along Perahu Ketek (Musi River) | Ride-Along South Sumatra LRT |
+| Ride-Along Perahu Ketek (Musi River) | Smart City: Live Weather, 3D Rain, Musi Tide & GIS Measure |
 | :---: | :---: |
-| ![Ride-Along Perahu Ketek Musi River](docs/screenshots/sat-ride-boat.png) | ![Ride-Along South Sumatra LRT](docs/screenshots/sat-ride-lrt.png) |
+| ![Ride-Along Perahu Ketek Musi River](docs/screenshots/sat-ride-boat.png) | ![Smart City Weather Rain Tide & GIS Measure](docs/screenshots/sat-gis-rain-tide.png) |
 
 ---
 
@@ -72,6 +72,10 @@ Switch seamlessly with one click in the top bar between:
 - **Unified Interactive Controls & Exploration Drawer**:
   - **Slim Top-Bar + Collapsible Left Drawer (`Eksplorasi`)**: Keeps 90%+ of the 3D viewport unobstructed while organizing **Ride-Along**, **Cinematic Auto-Tour**, **Free Drone (`WASD`/Arrows + `Q`/`E` + on-screen controls)**, **Tourism & Culinary Explorer**, and **3D Layer Toggles** (`Gedung 3D`, `Animasi`, `Label 3D`).
   - **Tourism, Culinary & Explorer Passport (`20` POIs)**: Filter color-coded 3D map pins across **10 Landmarks** (including Monpera), **6 Legendary Palembang Culinary Spots** (Pempek Candy, Pempek Vico, Kampung Pempek 26 Ilir, Martabak HAR, Mie Celor 26 Ilir, River Side BKB), and **4 South Sumatra LRT Stations**, complete with live search, persistent `localStorage` **Explorer Passport (`X/20`)** rank badges, and **Procedural Web Audio Ambience** (Musi River water lapping, tropical breeze, and distant riverboat horns — 100% browser-native with top-bar mute toggle).
+  - **Smart City Weather & GIS Tools (100% Zero API Key)**:
+    - **Live Palembang Weather (Open-Meteo)**: Real-time temperature, humidity, wind, and WMO weather sync + manual `Cerah` / `Berawan` / `Hujan 3D` toggles driving slanted tropical rain particles, overcast sky fog, and procedural Web Audio rain sound.
+    - **Musi River Tide / Flood Elevation Simulation (`0.0 m – +3.5 m`)**: Depth-tested 3D shimmering water plane over AWS Terrarium terrain showing riverbank inundation tiers (`Normal` → `Pasang Harian` → `Siaga` → `Banjir Rob Signifikan`).
+    - **Two-Point GIS Distance Measure**: Click any two points (or quick presets like `Ampera ↔ Kemaro`) to draw a geodesic line and compute exact Haversine distance (`m`/`km`) plus travel-time estimates by foot, car, South Sumatra LRT, and *perahu ketek*.
   - **1-Click Ride-Along Modes**: Hop aboard a moving 3-car **LRT Sumsel** train (with nearest-station telemetry), ride a **Perahu Ketek** along the Musi River toward Ampera Bridge, or trail a **Coal Barge** convoy.
   - **1-Click Mode Switcher**: `Satelit 3D` ↔ `Diorama` (or direct URL `?mode=satellite` / `?mode=diorama`).
   - **10 Camera Presets**: `Overview`, `Ampera`, `Bundaran & Masjid`, `Pasar 16 Ilir`, `Kuto Besak`, `Walikota & KI`, `Kampung Kapitan`, `Jakabaring`, `Jembatan Musi IV`, and `Pulau Kemaro`.
