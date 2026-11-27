@@ -291,6 +291,192 @@ function buildRealKemaroPagodaModel(mats) {
   return g;
 }
 
+// True-scale Masjid Agung Sultan Mahmud Badaruddin I (3-tiered Palembang tumpang roof + 46m minaret)
+function buildRealMasjidAgungModel(mats) {
+  const g = new THREE.Group();
+
+  // Raised marble plaza plinth
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(58, 2.2, 54), mats.concrete);
+  plinth.position.y = 1.1;
+  g.add(plinth);
+
+  // Main colonnaded prayer hall (encases flat OSM box with detailed heritage silhouette)
+  const hall = new THREE.Mesh(new THREE.BoxGeometry(46, 13.5, 42), mats.creamWall);
+  hall.position.y = 2.2 + 6.75;
+  g.add(hall);
+
+  // Glowing arched night-window bands on all four facades
+  const winBandX = new THREE.Mesh(new THREE.BoxGeometry(46.6, 4.2, 34), mats.warmGlow);
+  winBandX.position.y = 9.5;
+  g.add(winBandX);
+  const winBandZ = new THREE.Mesh(new THREE.BoxGeometry(38, 4.2, 42.6), mats.warmGlow);
+  winBandZ.position.y = 9.5;
+  g.add(winBandZ);
+
+  // Iconic 3-tiered Palembang tumpang pyramidal roof (emerald-green heritage tiles + gold cornice)
+  const tiers = [
+    { w: 51, d: 47, h: 6.2, y: 15.7 },
+    { w: 36, d: 33, h: 5.8, y: 21.6 },
+    { w: 22, d: 20, h: 5.5, y: 27.1 },
+  ];
+  for (const t of tiers) {
+    // 4-sided pyramid rotated 45 deg so edges align with rectangular hall
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(t.w, t.d) * 0.72, t.h, 4), mats.mosqueGreen);
+    roof.rotation.y = Math.PI / 4;
+    roof.scale.set(1, 1, t.d / t.w);
+    roof.position.y = t.y + t.h * 0.5;
+    g.add(roof);
+
+    const trim = new THREE.Mesh(new THREE.BoxGeometry(t.w * 0.96, 0.55, t.d * 0.96), mats.gold);
+    trim.position.y = t.y;
+    g.add(trim);
+  }
+
+  // Golden mustaka crown finial
+  const finial = new THREE.Mesh(new THREE.ConeGeometry(1.1, 6.0, 8), mats.gold);
+  finial.position.y = 35.4;
+  g.add(finial);
+  const orb = new THREE.Mesh(new THREE.SphereGeometry(1.4, 10, 10), mats.gold);
+  orb.position.y = 33.0;
+  g.add(orb);
+
+  // Iconic 46m tall cylindrical white-and-gold Menara Masjid Agung (east-south corner)
+  const mx = 31;
+  const mz = 18;
+  const mBase = new THREE.Mesh(new THREE.BoxGeometry(8.5, 9, 8.5), mats.whiteConcrete);
+  mBase.position.set(mx, 4.5, mz);
+  g.add(mBase);
+
+  const mShaft = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 3.3, 30, 14), mats.whiteConcrete);
+  mShaft.position.set(mx, 24, mz);
+  g.add(mShaft);
+
+  for (const gy of [28, 37]) {
+    const gallery = new THREE.Mesh(new THREE.CylinderGeometry(4.1, 3.8, 1.4, 14), mats.gold);
+    gallery.position.set(mx, gy, mz);
+    g.add(gallery);
+  }
+  const mLantern = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 4.2, 12), mats.warmGlow);
+  mLantern.position.set(mx, 40.5, mz);
+  g.add(mLantern);
+
+  const mDome = new THREE.Mesh(new THREE.SphereGeometry(2.6, 12, 10), mats.mosqueGreen);
+  mDome.position.set(mx, 43.2, mz);
+  g.add(mDome);
+
+  const mSpire = new THREE.Mesh(new THREE.ConeGeometry(0.45, 4.5, 8), mats.gold);
+  mSpire.position.set(mx, 47.2, mz);
+  g.add(mSpire);
+
+  return g;
+}
+
+// True-scale Monumen Perjuangan Rakyat (Monpera) — iconic 5-petal Melati flower monument (~22m)
+function buildRealMonperaModel(mats) {
+  const g = new THREE.Group();
+
+  // Stepped pentagonal ceremonial plaza base
+  const step1 = new THREE.Mesh(new THREE.CylinderGeometry(16.5, 18.0, 1.8, 5), mats.concrete);
+  step1.position.y = 0.9;
+  g.add(step1);
+  const step2 = new THREE.Mesh(new THREE.CylinderGeometry(12.2, 13.5, 2.2, 5), mats.whiteConcrete);
+  step2.position.y = 2.9;
+  g.add(step2);
+
+  // Central museum drum & glowing ring
+  const drum = new THREE.Mesh(new THREE.CylinderGeometry(7.2, 8.2, 5.0, 10), mats.whiteConcrete);
+  drum.position.y = 6.5;
+  g.add(drum);
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(7.6, 7.6, 0.85, 10), mats.warmGlow);
+  ring.position.y = 8.4;
+  g.add(ring);
+
+  // Five sweeping white Melati petals curving upward & outward
+  for (let i = 0; i < 5; i++) {
+    const angle = (i * Math.PI * 2) / 5;
+    const petalGroup = new THREE.Group();
+    petalGroup.rotation.y = angle;
+
+    const lower = new THREE.Mesh(new THREE.BoxGeometry(5.6, 10.5, 1.6), mats.whiteConcrete);
+    lower.position.set(0, 12.2, 5.2);
+    lower.rotation.x = 0.24;
+    petalGroup.add(lower);
+
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(4.4, 8.5, 1.25), mats.whiteConcrete);
+    upper.position.set(0, 20.0, 7.6);
+    upper.rotation.x = 0.48;
+    petalGroup.add(upper);
+
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(2.6, 4.2, 4), mats.gold);
+    tip.position.set(0, 24.4, 9.8);
+    tip.rotation.x = 0.56;
+    petalGroup.add(tip);
+
+    g.add(petalGroup);
+  }
+
+  // Golden core flame/stamen
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 2.0, 13.5, 8), mats.gold);
+  core.position.y = 14.5;
+  g.add(core);
+
+  return g;
+}
+
+// True-scale Benteng Kuto Besak riverside fortress wall, twin corner bastions & Lawang Kuto gateway
+function buildRealKutoBesakWallModel(mats) {
+  const g = new THREE.Group();
+  const wallLen = 152;
+  const wallH = 8.8;
+
+  // Main fortified limestone wall facing Sungai Musi
+  const mainWall = new THREE.Mesh(new THREE.BoxGeometry(wallLen, wallH, 4.2), mats.creamWall);
+  mainWall.position.set(0, wallH / 2, 0);
+  g.add(mainWall);
+
+  // Parapet coping & warm heritage wall uplight strip
+  const coping = new THREE.Mesh(new THREE.BoxGeometry(wallLen + 1.5, 0.9, 5.0), mats.terracotta);
+  coping.position.set(0, wallH + 0.45, 0);
+  g.add(coping);
+
+  const glow = new THREE.Mesh(new THREE.BoxGeometry(wallLen - 16, 0.55, 4.7), mats.warmGlow);
+  glow.position.set(0, 2.2, 0);
+  g.add(glow);
+
+  // Twin riverside corner bastions (east & west flanks)
+  for (const sx of [-1, 1]) {
+    const bastion = new THREE.Mesh(new THREE.BoxGeometry(19, wallH + 2.2, 16), mats.creamWall);
+    bastion.position.set(sx * (wallLen / 2 + 4), (wallH + 2.2) / 2, 3.2);
+    g.add(bastion);
+
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(13.5, 5.0, 4), mats.terracotta);
+    roof.rotation.y = Math.PI / 4;
+    roof.position.set(sx * (wallLen / 2 + 4), wallH + 4.7, 3.2);
+    g.add(roof);
+  }
+
+  // Lawang Kuto ceremonial central riverside gateway with Palembang limasan roof
+  const gateTower = new THREE.Mesh(new THREE.BoxGeometry(22, 12.5, 9.5), mats.whiteConcrete);
+  gateTower.position.set(0, 6.25, 1.5);
+  g.add(gateTower);
+
+  const gateArch = new THREE.Mesh(new THREE.BoxGeometry(8.5, 6.8, 10.1), mats.asphalt);
+  gateArch.position.set(0, 3.4, 1.5);
+  g.add(gateArch);
+
+  const gateRoof = new THREE.Mesh(new THREE.ConeGeometry(16.5, 6.4, 4), mats.terracotta);
+  gateRoof.rotation.y = Math.PI / 4;
+  gateRoof.scale.set(1.2, 1, 0.72);
+  gateRoof.position.set(0, 15.6, 1.5);
+  g.add(gateRoof);
+
+  const gateTrim = new THREE.Mesh(new THREE.BoxGeometry(23.5, 0.7, 10.4), mats.gold);
+  gateTrim.position.set(0, 12.5, 1.5);
+  g.add(gateTrim);
+
+  return g;
+}
+
 export function createHeroLandmarksCustomLayer() {
   const mats = {
     steelRed: new THREE.MeshStandardMaterial({ color: '#bd3228', roughness: 0.46, metalness: 0.32 }),
@@ -299,6 +485,9 @@ export function createHeroLandmarksCustomLayer() {
     asphalt: new THREE.MeshStandardMaterial({ color: '#2b3038', roughness: 0.9 }),
     concrete: new THREE.MeshStandardMaterial({ color: '#c8c2b6', roughness: 0.85 }),
     whiteConcrete: new THREE.MeshStandardMaterial({ color: '#f2efe8', roughness: 0.68 }),
+    creamWall: new THREE.MeshStandardMaterial({ color: '#ede4d3', roughness: 0.74 }),
+    mosqueGreen: new THREE.MeshStandardMaterial({ color: '#1b6b4b', roughness: 0.45, metalness: 0.15 }),
+    terracotta: new THREE.MeshStandardMaterial({ color: '#a8442a', roughness: 0.62 }),
     cable: new THREE.MeshStandardMaterial({ color: '#bfc8d2', roughness: 0.3, metalness: 0.7 }),
     gold: new THREE.MeshStandardMaterial({ color: '#e0ad2e', roughness: 0.32, metalness: 0.58 }),
     warmGlow: new THREE.MeshStandardMaterial({
@@ -340,6 +529,27 @@ export function createHeroLandmarksCustomLayer() {
       altitude: 0,
       bearingDeg: 0,
       model: buildRealKemaroPagodaModel(mats),
+    },
+    {
+      name: 'MasjidAgung',
+      lngLat: [104.76008, -2.98778],
+      altitude: 0,
+      bearingDeg: 8,
+      model: buildRealMasjidAgungModel(mats),
+    },
+    {
+      name: 'Monpera',
+      lngLat: [104.76065, -2.98968],
+      altitude: 0,
+      bearingDeg: 14,
+      model: buildRealMonperaModel(mats),
+    },
+    {
+      name: 'BentengKutoBesak',
+      lngLat: [104.75985, -2.99185],
+      altitude: 0,
+      bearingDeg: 164,
+      model: buildRealKutoBesakWallModel(mats),
     },
   ];
 

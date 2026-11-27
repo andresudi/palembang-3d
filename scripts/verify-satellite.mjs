@@ -263,8 +263,16 @@ try {
   await page.waitForFunction(() => Boolean(window.__PALEMBANG_3D__?.weather?.live?.tempC !== undefined), null, { timeout: 10000 });
   const liveWeather = await page.evaluate(() => window.__PALEMBANG_3D__?.weather?.live);
 
+  // Phase 4: Share Camera URL Deep-Link + restore check
+  await page.click('[data-share-btn="true"]');
+  await page.waitForTimeout(250);
+  const shareUrl = await page.evaluate(() => window.__PALEMBANG_3D__?.lastShareUrl || '');
+  if (!shareUrl.includes('lng=') || !shareUrl.includes('lat=') || !shareUrl.includes('z=')) {
+    throw new Error(`Share URL missing deep-link camera params: ${shareUrl}`);
+  }
+
   const telemetry = await page.evaluate(() => window.__PALEMBANG_3D__);
-  console.log(JSON.stringify({ status: 'PASS', animationMoved, drawerOpened, rideLrtMoved, boatMode, droneMoved, kulinerState, phase2Check, phase3Check, liveWeather, animT0, animT1, telemetry, consoleErrors, pageErrors }, null, 2));
+  console.log(JSON.stringify({ status: 'PASS', animationMoved, drawerOpened, rideLrtMoved, boatMode, droneMoved, kulinerState, phase2Check, phase3Check, liveWeather, shareUrl, animT0, animT1, telemetry, consoleErrors, pageErrors }, null, 2));
 } finally {
   if (browser) await browser.close().catch(() => {});
   if (!previewProc.killed) previewProc.kill('SIGTERM');

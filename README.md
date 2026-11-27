@@ -1,9 +1,11 @@
 # Kota Palembang 3D — Real Satellite 3D & Interactive Diorama
 
+> **Live Demo:** https://andresudi.github.io/palembang-3d/ *(auto-deployed via GitHub Pages)*
+
 A dual-mode interactive 3D web visualization of **Palembang, South Sumatra, Indonesia**, built with **MapLibre GL JS (`^6.19.0`)**, **Three.js (`^0.187.0`)**, and **Vite (`^8.4.0`)** — requiring **zero paid API keys**.
 
 Switch seamlessly with one click in the top bar between:
-1. **Real Satellite 3D Mode (`Satelit 3D`, default)** — Real 1:1 GPS scale locked to the curated Palembang landmark corridor (`maxBounds`) combining **Esri World Imagery** satellite photography, **OpenFreeMap / OpenStreetMap** 3D building extrusions, **AWS Terrarium** 3D terrain elevation, custom true-scale **Three.js WebGL 3D overlays** (**Ampera Bridge**, **Musi IV Bridge**, **Kemaro Island 9-Story Pagoda**, **elevated South Sumatra LRT viaduct**, and **Gelora Sriwijaya Jakabaring floodlights**), plus **1:1 Diorama-parity live animations** (420 viewport-aware road vehicles that dynamically populate whichever neighborhood you zoom into, 8 animated 3-car LRT trains, 42 *perahu ketek* & speedboats including Pulau Kemaro channels, 6 coal barge + tugboat convoys, animated Bundaran Air Mancur fountain, and a waving Merah-Putih flag at Benteng Kuto Besak).
+1. **Real Satellite 3D Mode (`Satelit 3D`, default)** — Real 1:1 GPS scale locked to the curated Palembang landmark corridor (`maxBounds`) combining **Esri World Imagery** satellite photography, **OpenFreeMap / OpenStreetMap** 3D building extrusions, **AWS Terrarium** 3D terrain elevation, **7 custom true-scale Three.js WebGL 3D hero overlays** (**Ampera Bridge**, **Musi IV Bridge**, **Masjid Agung SMB I**, **Monpera**, **Benteng Kuto Besak**, **Kemaro Island 9-Story Pagoda**, **elevated South Sumatra LRT viaduct**, and **Gelora Sriwijaya Jakabaring floodlights**), **1:1 Diorama-parity live animations** (420 viewport-aware vehicles, 8 LRT trains, 42 *perahu ketek* & speedboats, 6 coal barge convoys, animated Bundaran Air Mancur fountain, waving BKB flag), **Ride-Along / Auto-Tour / Free Drone**, **20-POI Culinary & Tourism Passport + Procedural Web Audio**, **Live Open-Meteo Weather + 3D Rain + Musi Tide Simulation + GIS Distance Measure**, and **Shareable Camera Deep-Links**.
 2. **Stylized PBR Diorama Mode (`Diorama`)** — 100% offline/zero-CDN procedural Three.js miniature diorama featuring procedural PBR textures, dynamic `PMREMGenerator` sky IBL reflections, animated river & road traffic, 11 iconic landmarks, and `UnrealBloomPass` lighting.
 
 > A companion engineering & feasibility analysis report (in English) is included at [`ANALISIS_PALEMBANG_3D.md`](./ANALISIS_PALEMBANG_3D.md).
@@ -20,13 +22,13 @@ Switch seamlessly with one click in the top bar between:
 
 ### Real-World Landmarks Gallery
 
-| Ampera Bridge & Live LRT Sunset (1:1 GPS Scale) | Fountain Roundabout, Great Mosque & LRT Corridor |
+| Ampera Bridge & Live LRT Sunset (1:1 GPS Scale) | Masjid Agung SMB I, Monpera & Bundaran Air Mancur (3D Hero Overlays) |
 | :---: | :---: |
 | ![Ampera Bridge Real Satellite 3D Sunset](docs/screenshots/sat-ampera-sunset.png) | ![Great Mosque & BAM Real Satellite 3D](docs/screenshots/sat-masjid.png) |
 
-| Gelora Sriwijaya Jakabaring Sport City | Musi IV Bridge & Musi River Coal Barge |
+| Benteng Kuto Besak & Lawang Kuto 3D Overlay | Musi IV Bridge & Musi River Coal Barge |
 | :---: | :---: |
-| ![Jakabaring Sport City Real 3D](docs/screenshots/sat-jakabaring.png) | ![Musi IV Bridge Real Satellite 3D](docs/screenshots/sat-musi-iv.png) |
+| ![Benteng Kuto Besak Real Satellite 3D](docs/screenshots/sat-bkb.png) | ![Musi IV Bridge Real Satellite 3D](docs/screenshots/sat-musi-iv.png) |
 
 | Ampera Bridge Day Traffic & Boats | Kemaro Island & 9-Story Pagoda Overlay |
 | :---: | :---: |
@@ -65,7 +67,8 @@ Switch seamlessly with one click in the top bar between:
   - **OpenFreeMap / OpenStreetMap** real-time vector tiles & 3D building extrusions (`Gedung 3D` toggle)
   - **AWS Terrarium** 3D elevation terrain + atmospheric sky & horizon fog
   - **Custom MapLibre v6 Three.js 3D WebGL Layers**:
-    - True-scale Ampera Bridge (`66m` twin towers with pulsing aviation beacons & approach ramps), Musi IV Cable-Stayed Bridge (`58m` pylons & ramps), Kemaro Island 9-Story Pagoda (`45m`), elevated South Sumatra LRT concrete viaduct, and Gelora Sriwijaya Jakabaring 4 stadium floodlight towers at exact WGS84 coordinates & compass bearings.
+    - True-scale **Ampera Bridge** (`66m` twin towers with pulsing beacons & ramps), **Musi IV Cable-Stayed Bridge** (`58m` pylons & ramps), **Masjid Agung SMB I** (3-tiered emerald *tumpang* roof + `46m` minaret), **Monpera** (5-petal Melati monument), **Benteng Kuto Besak** (fortress wall, twin bastions & *Lawang Kuto* gate), **Kemaro Island 9-Story Pagoda** (`45m`), **elevated South Sumatra LRT concrete viaduct**, and **Gelora Sriwijaya Jakabaring 4 stadium floodlight towers** at exact WGS84 coordinates & compass bearings.
+  - **Shareable Camera Deep-Links & Public Hosting**: Click **`Bagikan`** in the top bar to copy a URL preserving exact `lng`, `lat`, `zoom`, `pitch`, `bearing`, `lighting`, and `weather` state; automatically built & deployed via `.github/workflows/deploy-pages.yml` to https://andresudi.github.io/palembang-3d/.
     - **1:1 Diorama-Parity Live Animations (`Animasi` toggle)**: `420` viewport-aware instanced road vehicles following real OpenStreetMap Palembang streets & bridge decks (Indonesian left-hand drive, dusk/night headlights & taillights, dynamically streaming into whichever district you zoom into), `8` articulated 3-car South Sumatra LRT trains, `42` *perahu ketek* & speedboats with soft aerial V-wakes (including Pulau Kemaro channels), `6` coal barge + tugboat convoys, animated **Bundaran Air Mancur** water fountain, and waving **Merah-Putih** flag at **Benteng Kuto Besak**.
 - **Offline Stylized PBR Diorama Mode**:
   - 100% procedural canvas PBR textures (grained asphalt, stone plaza paving, terracotta roof tiles, weathered colonial plaster, mowed stadium turf, multi-story shophouse facades with glowing night windows), dynamic `PMREMGenerator` sky IBL, drifting clouds & night starfield, animated river/road/LRT traffic, and mood-tuned `UnrealBloomPass`.

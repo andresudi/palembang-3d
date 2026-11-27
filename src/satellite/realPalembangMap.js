@@ -190,6 +190,27 @@ function buildSatelliteStyle() {
   };
 }
 
+function parseUrlCameraParams(fallback) {
+  const params = new URLSearchParams(window.location.search);
+  const num = (key, min, max, def) => {
+    const raw = params.get(key);
+    if (raw === null || raw === '') return def;
+    const v = Number(raw);
+    return Number.isFinite(v) ? Math.max(min, Math.min(max, v)) : def;
+  };
+  const lng = num('lng', 104.728, 104.832, fallback.center[0]);
+  const lat = num('lat', -3.038, -2.964, fallback.center[1]);
+  const zoom = num('z', 13.8, 18.8, fallback.zoom);
+  const pitch = num('pitch', 0, 78, fallback.pitch);
+  const bearing = num('bearing', -360, 360, fallback.bearing);
+  const lightingParam = params.get('lighting');
+  const lighting = lightingParam && lightingParam in LIGHTING_THEMES ? lightingParam : 'siang';
+  const weatherParam = params.get('weather');
+  const weather = ['cerah', 'berawan', 'hujan'].includes(weatherParam) ? weatherParam : 'cerah';
+  const hasCustomView = params.has('lng') && params.has('lat');
+  return { center: [lng, lat], zoom, pitch, bearing, lighting, weather, hasCustomView };
+}
+
 export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback }) {
   rootEl.innerHTML = '';
 
@@ -197,16 +218,16 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   mapContainer.className = 'canvas-stage satellite-stage';
   rootEl.appendChild(mapContainer);
 
+  const initialView = parseUrlCameraParams(REAL_PRESETS[0]);
   let map;
   try {
-    const initial = REAL_PRESETS[0];
     map = new maplibregl.Map({
       container: mapContainer,
       style: buildSatelliteStyle(),
-      center: initial.center,
-      zoom: initial.zoom,
-      pitch: initial.pitch,
-      bearing: initial.bearing,
+      center: initialView.center,
+      zoom: initialView.zoom,
+      pitch: initialView.pitch,
+      bearing: initialView.bearing,
       maxBounds: [
         [104.725, -3.040],
         [104.835, -2.962],
@@ -226,7 +247,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   }
 
   let activePreset = 'overview';
-  let activeLighting = 'siang';
+  let activeLighting = initialView.lighting;
   let activePinCategory = 'landmark'; // Clean overview starts with Landmark pins; Jelajah filters light up Kuliner/LRT/Semua
   let labelsVisible = true;
   let buildingsVisible = true;
@@ -234,6 +255,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   let infoExpanded = false;
   let isReady = false;
   let isFlying = false;
+  let lastShareUrl = '';
 
   const hero3d = createHeroLandmarksCustomLayer();
   const traffic3d = createAnimatedTrafficLayer();
@@ -303,7 +325,14 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     lightingBtns.set(mode.id, btn);
   }
 
-  // Slim Top-Bar: [Satelit 3D | Diorama] + [Siang | Senja | Malam] + [Suara] + [Eksplorasi]
+  // Slim Top-Bar: [Satelit 3D | Diorama] + [Siang | Senja | Malam] + [Bagikan] + [Suara] + [Eksplorasi]
+  const shareBtn = document.createElement('button');
+  shareBtn.type = 'button';
+  shareBtn.className = 'toggle-btn';
+  shareBtn.textContent = 'Bagikan';
+  shareBtn.title = 'Salin tautan sudut kamera saat ini';
+  shareBtn.dataset.shareBtn = 'true';
+
   const audioBtn = document.createElement('button');
   audioBtn.type = 'button';
   audioBtn.className = 'toggle-btn audio-top-btn';
@@ -319,7 +348,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   exploreBtn.dataset.exploreBtn = 'true';
   exploreBtn.setAttribute('aria-expanded', 'false');
 
-  topControls.append(modeGroup, lightingGroup, audioBtn, exploreBtn);
+  topControls.append(modeGroup, lightingGroup, shareBtn, audioBtn, exploreBtn);
   topBar.append(brand, topControls);
 
   // Info Card
@@ -416,6 +445,39 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     exploreDrawer?.syncAudio(isOn);
   }
   audioBtn.addEventListener('click', toggleAudio);
+
+  function buildShareUrl() {
+    const c = map.getCenter();
+    const url = new URL(window.location.href);
+    url.searchParams.set('mode', 'satellite');
+    url.searchParams.set('lng', c.lng.toFixed(5));
+    url.searchParams.set('lat', c.lat.toFixed(5));
+    url.searchParams.set('z', map.getZoom().toFixed(2));
+    url.searchParams.set('pitch', map.getPitch().toFixed(1));
+    url.searchParams.set('bearing', map.getBearing().toFixed(1));
+    url.searchParams.set('lighting', activeLighting);
+    const wMode = weatherGis.getWeatherState().mode;
+    if (wMode !== 'cerah') url.searchParams.set('weather', wMode);
+    else url.searchParams.delete('weather');
+    return url.toString();
+  }
+
+  shareBtn.addEventListener('click', async () => {
+    lastShareUrl = buildShareUrl();
+    try {
+      window.history.replaceState(null, '', lastShareUrl);
+    } catch {}
+    let copied = false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(lastShareUrl);
+        copied = true;
+      }
+    } catch {}
+    exploreDrawer?.showToast(
+      copied ? '✓ Tautan sudut kamera disalin ke clipboard!' : '✓ Tautan sudut kamera diperbarui di URL browser!'
+    );
+  });
 
   exploreDrawer = createExploreDrawer({
     cameraModes,
@@ -662,9 +724,12 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   refreshMarkerVisibility();
   rootEl.dataset.mode = 'satellite';
   rootEl.dataset.labels = 'true';
-  rootEl.dataset.lighting = 'siang';
-  lightingBtns.get('siang')?.classList.add('active');
-  lightingBtns.get('siang')?.setAttribute('aria-pressed', 'true');
+  rootEl.dataset.lighting = activeLighting;
+  lightingBtns.get(activeLighting)?.classList.add('active');
+  lightingBtns.get(activeLighting)?.setAttribute('aria-pressed', 'true');
+  if (initialView.weather !== 'cerah') {
+    weatherGis.setWeatherMode(initialView.weather, { source: 'manual', storm: initialView.weather === 'hujan' });
+  }
 
   // Expose unified read-only telemetry matching Diorama contract
   const getTelemetry = () => {
@@ -684,6 +749,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       weather: weatherGis.getWeatherState(),
       tide: weatherGis.getTideState(),
       measure: weatherGis.getMeasureState(),
+      lastShareUrl,
       drawerOpen: exploreDrawer.isOpen(),
       cameraMode: cameraModes.getState().mode,
       tweening: isFlying,
