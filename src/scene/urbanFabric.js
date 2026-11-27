@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GROUND_Y, getRiverBoundsAt } from './riverMusi.js';
+import { getPBRTextures } from './textures.js';
 
 // Deterministic PRNG for reproducible dense city placement
 function mulberry32(seed) {
@@ -138,11 +139,34 @@ export function createUrbanFabric(scene, env) {
   group.name = 'PalembangUrbanFabric';
   const rand = mulberry32(20261127);
 
-  // --- 1. Urban Ground Zoning Pads (eliminating bare green lawn in urban districts) ---
-  const commercialPadMat = new THREE.MeshStandardMaterial({ color: '#8f8c83', roughness: 0.94 });
-  const residentialPadMat = new THREE.MeshStandardMaterial({ color: '#788469', roughness: 0.95 });
-  const sidewalkMat = new THREE.MeshStandardMaterial({ color: '#aba599', roughness: 0.9 });
-  const asphaltMat = new THREE.MeshStandardMaterial({ color: '#393e46', roughness: 0.92 });
+  // --- 1. Urban Ground Zoning Pads (PBR paved commercial & organic residential districts) ---
+  const pbr = getPBRTextures();
+  const commercialPadMat = new THREE.MeshStandardMaterial({
+    color: '#b0aba1',
+    map: pbr.plaza.map,
+    bumpMap: pbr.plaza.bumpMap,
+    bumpScale: 0.2,
+    roughness: 0.92,
+  });
+  const residentialPadMat = new THREE.MeshStandardMaterial({
+    color: '#a3ae96',
+    map: pbr.grass.map,
+    bumpMap: pbr.grass.bumpMap,
+    bumpScale: 0.22,
+    roughness: 0.94,
+  });
+  const sidewalkMat = new THREE.MeshStandardMaterial({
+    color: '#c2bbb0',
+    map: pbr.plaza.map,
+    roughness: 0.88,
+  });
+  const asphaltMat = new THREE.MeshStandardMaterial({
+    color: '#b0b5bd',
+    map: pbr.asphalt.map,
+    bumpMap: pbr.asphalt.bumpMap,
+    bumpScale: 0.18,
+    roughness: 0.88,
+  });
   const stripeMat = new THREE.MeshBasicMaterial({ color: '#ebe4d1' });
 
   const zoningPads = [
@@ -259,23 +283,31 @@ export function createUrbanFabric(scene, env) {
     }
   }
 
-  // Materials for instanced buildings (MeshStandardMaterial supports per-instance color tinting)
-  const rukoBodyMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.84 });
-  const rukoRoofMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.8 });
-  const windowGlowMat = new THREE.MeshStandardMaterial({
-    color: '#ffe29c',
-    emissive: '#ffaa38',
-    emissiveIntensity: 0.14,
-    roughness: 0.4,
+  // Materials for instanced buildings: realistic PBR multi-story facade with individual glowing night windows
+  const rukoBodyMat = new THREE.MeshStandardMaterial({
+    color: '#ffffff',
+    map: pbr.rukoFacade.map,
+    bumpMap: pbr.rukoFacade.bumpMap,
+    bumpScale: 0.16,
+    emissive: new THREE.Color('#ffbe66'),
+    emissiveMap: pbr.rukoFacade.emissiveMap,
+    emissiveIntensity: 0.08,
+    roughness: 0.68,
+    metalness: 0.12,
+  });
+  const rukoRoofMat = new THREE.MeshStandardMaterial({
+    color: '#ffffff',
+    bumpMap: pbr.roofTile.bumpMap,
+    bumpScale: 0.18,
+    roughness: 0.8,
   });
 
-  const rukoColors = ['#e4dcd0', '#d5cbbd', '#c7cfd4', '#dfd1bd', '#c8c3b9', '#d2dadf'];
+  const rukoColors = ['#f0e8dc', '#e2d8c9', '#d4dce2', '#e8dac6', '#d8d3c9', '#dde5ea'];
   const roofColors = ['#9c4a35', '#4b5f70', '#707478', '#8c3f2e', '#58695e'];
 
-  // Ruko body + parapet roof + glowing window ribbon
+  // Ruko body (with architectural window grid texture) + parapet roof
   const rukoBodyInst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), rukoBodyMat, rukoList.length);
   const rukoRoofInst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), rukoRoofMat, rukoList.length);
-  const rukoWinInst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), windowGlowMat, rukoList.length);
   rukoBodyInst.castShadow = true;
   rukoBodyInst.receiveShadow = true;
 
@@ -293,24 +325,28 @@ export function createUrbanFabric(scene, env) {
     dummy.updateMatrix();
     rukoRoofInst.setMatrixAt(i, dummy.matrix);
     rukoRoofInst.setColorAt(i, tmpColor.set(roofColors[i % roofColors.length]));
-
-    // Warm window strip at mid-upper facade
-    dummy.position.set(b.x, GROUND_Y + b.h * 0.62, b.z);
-    dummy.scale.set(b.w + 0.14, Math.min(2.2, b.h * 0.28), b.d + 0.14);
-    dummy.updateMatrix();
-    rukoWinInst.setMatrixAt(i, dummy.matrix);
   });
   rukoBodyInst.instanceMatrix.needsUpdate = true;
   if (rukoBodyInst.instanceColor) rukoBodyInst.instanceColor.needsUpdate = true;
   rukoRoofInst.instanceMatrix.needsUpdate = true;
   if (rukoRoofInst.instanceColor) rukoRoofInst.instanceColor.needsUpdate = true;
-  rukoWinInst.instanceMatrix.needsUpdate = true;
 
-  group.add(rukoBodyInst, rukoRoofInst, rukoWinInst);
+  group.add(rukoBodyInst, rukoRoofInst);
 
-  // Residential houses (body + pitched 4-sided hip/limas roof)
-  const houseBodyMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.88 });
-  const houseRoofMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.82 });
+  // Residential houses (plaster walls + tiled pitched hip/limas roofs)
+  const houseBodyMat = new THREE.MeshStandardMaterial({
+    color: '#ffffff',
+    map: pbr.plaster.map,
+    bumpMap: pbr.plaster.bumpMap,
+    bumpScale: 0.15,
+    roughness: 0.86,
+  });
+  const houseRoofMat = new THREE.MeshStandardMaterial({
+    color: '#ffffff',
+    bumpMap: pbr.roofTile.bumpMap,
+    bumpScale: 0.24,
+    roughness: 0.8,
+  });
   const houseColors = ['#e8dfd1', '#d9cebe', '#cfbfb0', '#dce2d8', '#e5d4be'];
   const houseRoofColors = ['#a64c34', '#8e3f2c', '#5e4c41', '#4f6272', '#b35b3d'];
 
@@ -500,8 +536,8 @@ export function createUrbanFabric(scene, env) {
   group.add(carInst);
 
   env.onLightingChange((cfg) => {
-    windowGlowMat.emissiveIntensity = 0.14 + cfg.nightGlow * 2.15;
-    lampGlowMat.emissiveIntensity = 0.2 + cfg.nightGlow * 2.7;
+    rukoBodyMat.emissiveIntensity = 0.05 + cfg.nightGlow * 1.95;
+    lampGlowMat.emissiveIntensity = 0.25 + cfg.nightGlow * 3.1;
   });
 
   scene.add(group);

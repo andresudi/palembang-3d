@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GROUND_Y, getRiverBoundsAt } from './riverMusi.js';
+import { getPBRTextures } from './textures.js';
 
 function createRumahLimas(x, z, rotY, scale, materials) {
   const g = new THREE.Group();
@@ -318,21 +319,60 @@ export function createCityContext(scene, env) {
   const group = new THREE.Group();
   group.name = 'PalembangCityContext';
 
+  const pbr = getPBRTextures();
   const materials = {
-    whiteMarble: new THREE.MeshStandardMaterial({ color: '#f3f1eb', roughness: 0.7 }),
-    creamWall: new THREE.MeshStandardMaterial({ color: '#e3dccb', roughness: 0.8 }),
-    terracotta: new THREE.MeshStandardMaterial({ color: '#a04a32', roughness: 0.76 }),
-    emerald: new THREE.MeshStandardMaterial({ color: '#1e6b47', roughness: 0.72 }),
-    gold: new THREE.MeshStandardMaterial({ color: '#d8a328', roughness: 0.35, metalness: 0.45 }),
-    maroon: new THREE.MeshStandardMaterial({ color: '#7a2520', roughness: 0.75 }),
-    woodDark: new THREE.MeshStandardMaterial({ color: '#4d321f', roughness: 0.9 }),
-    woodMid: new THREE.MeshStandardMaterial({ color: '#754c2e', roughness: 0.84 }),
-    concreteLight: new THREE.MeshStandardMaterial({ color: '#c4c7ca', roughness: 0.82 }),
-    concreteMid: new THREE.MeshStandardMaterial({ color: '#9ea3a8', roughness: 0.85 }),
-    stonePlaza: new THREE.MeshStandardMaterial({ color: '#b5afa4', roughness: 0.88 }),
-    steelLight: new THREE.MeshStandardMaterial({ color: '#dfe4ea', roughness: 0.45, metalness: 0.25 }),
-    lrtBlue: new THREE.MeshStandardMaterial({ color: '#1f70b8', roughness: 0.55 }),
-    glassDark: new THREE.MeshStandardMaterial({ color: '#1f2c38', roughness: 0.3 }),
+    whiteMarble: new THREE.MeshStandardMaterial({
+      color: '#faf8f2',
+      map: pbr.plaster.map,
+      bumpMap: pbr.plaster.bumpMap,
+      bumpScale: 0.14,
+      roughness: 0.66,
+    }),
+    creamWall: new THREE.MeshStandardMaterial({
+      color: '#efe8d7',
+      map: pbr.plaster.map,
+      bumpMap: pbr.plaster.bumpMap,
+      bumpScale: 0.18,
+      roughness: 0.78,
+    }),
+    terracotta: new THREE.MeshStandardMaterial({
+      color: '#e5b6a6',
+      map: pbr.roofTile.map,
+      bumpMap: pbr.roofTile.bumpMap,
+      bumpScale: 0.26,
+      roughness: 0.74,
+    }),
+    emerald: new THREE.MeshStandardMaterial({ color: '#1e6b47', roughness: 0.62, metalness: 0.1 }),
+    gold: new THREE.MeshStandardMaterial({ color: '#e2ae2e', roughness: 0.28, metalness: 0.65 }),
+    maroon: new THREE.MeshStandardMaterial({ color: '#7a2520', roughness: 0.72 }),
+    woodDark: new THREE.MeshStandardMaterial({ color: '#4d321f', roughness: 0.88 }),
+    woodMid: new THREE.MeshStandardMaterial({ color: '#754c2e', roughness: 0.82 }),
+    concreteLight: new THREE.MeshStandardMaterial({
+      color: '#d4d7da',
+      map: pbr.plaster.map,
+      roughness: 0.8,
+    }),
+    concreteMid: new THREE.MeshStandardMaterial({
+      color: '#adb2b8',
+      map: pbr.plaster.map,
+      roughness: 0.84,
+    }),
+    stonePlaza: new THREE.MeshStandardMaterial({
+      color: '#cac3b7',
+      map: pbr.plaza.map,
+      bumpMap: pbr.plaza.bumpMap,
+      bumpScale: 0.18,
+      roughness: 0.86,
+    }),
+    steelLight: new THREE.MeshStandardMaterial({
+      color: '#dfe4ea',
+      bumpMap: pbr.steelBump,
+      bumpScale: 0.08,
+      roughness: 0.38,
+      metalness: 0.42,
+    }),
+    lrtBlue: new THREE.MeshStandardMaterial({ color: '#1f70b8', roughness: 0.42, metalness: 0.25 }),
+    glassDark: new THREE.MeshStandardMaterial({ color: '#1f2c38', roughness: 0.18, metalness: 0.45 }),
     windowGlow: new THREE.MeshStandardMaterial({
       color: '#ffd98a',
       emissive: '#ffaa38',

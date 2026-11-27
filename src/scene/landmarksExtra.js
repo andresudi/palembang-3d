@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GROUND_Y, getRiverBoundsAt } from './riverMusi.js';
+import { getPBRTextures } from './textures.js';
 
 function addBeam(parent, p1, p2, thickness, material) {
   const dir = new THREE.Vector3().subVectors(p2, p1);
@@ -25,8 +26,17 @@ function createHippedRoof(width, height, depth, ridgeLen, material) {
     -hw, 0, -hd, -hw, 0, hd,   -hr, height, 0,
      hw, 0, hd,   hw, 0, -hd,   hr, height, 0,
   ]);
+  const uvs = new Float32Array([
+    0, 0,  width * 0.15, 0,  width * 0.11, depth * 0.15,
+    0, 0,  width * 0.11, depth * 0.15,  width * 0.04, depth * 0.15,
+    0, 0,  width * 0.15, 0,  width * 0.11, depth * 0.15,
+    0, 0,  width * 0.11, depth * 0.15,  width * 0.04, depth * 0.15,
+    0, 0,  depth * 0.15, 0,  depth * 0.075, depth * 0.15,
+    0, 0,  depth * 0.15, 0,  depth * 0.075, depth * 0.15,
+  ]);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
   geo.computeVertexNormals();
   const mesh = new THREE.Mesh(geo, material);
   mesh.castShadow = true;
@@ -790,60 +800,123 @@ export function createExtraLandmarks(scene, env) {
   const group = new THREE.Group();
   group.name = 'PalembangExtraLandmarks';
 
+  const pbr = getPBRTextures();
   const materials = {
-    asphalt: new THREE.MeshStandardMaterial({ color: '#393e46', roughness: 0.92 }),
+    asphalt: new THREE.MeshStandardMaterial({
+      color: '#b0b5bd',
+      map: pbr.asphalt.map,
+      bumpMap: pbr.asphalt.bumpMap,
+      bumpScale: 0.18,
+      roughness: 0.88,
+    }),
     roadStripe: new THREE.MeshBasicMaterial({ color: '#eee8d6' }),
-    stoneLight: new THREE.MeshStandardMaterial({ color: '#cbc5b8', roughness: 0.84 }),
-    stonePlaza: new THREE.MeshStandardMaterial({ color: '#b8b1a4', roughness: 0.88 }),
-    concreteMid: new THREE.MeshStandardMaterial({ color: '#9fa5ab', roughness: 0.85 }),
-    concreteDark: new THREE.MeshStandardMaterial({ color: '#4d545d', roughness: 0.8 }),
-    whiteMarble: new THREE.MeshStandardMaterial({ color: '#f2efe8', roughness: 0.68 }),
-    creamWall: new THREE.MeshStandardMaterial({ color: '#e6decb', roughness: 0.78 }),
-    ochreWall: new THREE.MeshStandardMaterial({ color: '#dfc287', roughness: 0.78 }),
-    terracotta: new THREE.MeshStandardMaterial({ color: '#a84a32', roughness: 0.76 }),
-    crimson: new THREE.MeshStandardMaterial({ color: '#bd2f29', roughness: 0.62 }),
-    emerald: new THREE.MeshStandardMaterial({ color: '#21704b', roughness: 0.72 }),
-    lrtBlue: new THREE.MeshStandardMaterial({ color: '#1f70b8', roughness: 0.55 }),
-    slateRoof: new THREE.MeshStandardMaterial({ color: '#4e6070', roughness: 0.78 }),
-    gold: new THREE.MeshStandardMaterial({ color: '#d8a328', roughness: 0.36, metalness: 0.45 }),
-    woodDark: new THREE.MeshStandardMaterial({ color: '#4e3320', roughness: 0.9 }),
-    woodMid: new THREE.MeshStandardMaterial({ color: '#784e30', roughness: 0.84 }),
-    steelLight: new THREE.MeshStandardMaterial({ color: '#dce2e8', roughness: 0.45, metalness: 0.3 }),
-    cableSilver: new THREE.MeshStandardMaterial({ color: '#aeb7c2', roughness: 0.35, metalness: 0.65 }),
-    parkGrass: new THREE.MeshStandardMaterial({ color: '#477a42', roughness: 0.92 }),
-    pitchGrass: new THREE.MeshStandardMaterial({ color: '#2e8540', roughness: 0.88 }),
+    stoneLight: new THREE.MeshStandardMaterial({
+      color: '#ded8cb',
+      map: pbr.plaza.map,
+      bumpMap: pbr.plaza.bumpMap,
+      bumpScale: 0.14,
+      roughness: 0.82,
+    }),
+    stonePlaza: new THREE.MeshStandardMaterial({
+      color: '#cec7ba',
+      map: pbr.plaza.map,
+      bumpMap: pbr.plaza.bumpMap,
+      bumpScale: 0.18,
+      roughness: 0.86,
+    }),
+    concreteMid: new THREE.MeshStandardMaterial({
+      color: '#aeb4ba',
+      map: pbr.plaster.map,
+      roughness: 0.84,
+    }),
+    concreteDark: new THREE.MeshStandardMaterial({ color: '#4d545d', roughness: 0.78 }),
+    whiteMarble: new THREE.MeshStandardMaterial({
+      color: '#faf7f0',
+      map: pbr.plaster.map,
+      bumpMap: pbr.plaster.bumpMap,
+      bumpScale: 0.15,
+      roughness: 0.66,
+    }),
+    creamWall: new THREE.MeshStandardMaterial({
+      color: '#f2ead9',
+      map: pbr.plaster.map,
+      bumpMap: pbr.plaster.bumpMap,
+      bumpScale: 0.18,
+      roughness: 0.76,
+    }),
+    ochreWall: new THREE.MeshStandardMaterial({
+      color: '#edd297',
+      map: pbr.plaster.map,
+      bumpMap: pbr.plaster.bumpMap,
+      bumpScale: 0.18,
+      roughness: 0.76,
+    }),
+    terracotta: new THREE.MeshStandardMaterial({
+      color: '#e8b6a6',
+      map: pbr.roofTile.map,
+      bumpMap: pbr.roofTile.bumpMap,
+      bumpScale: 0.28,
+      roughness: 0.74,
+    }),
+    crimson: new THREE.MeshStandardMaterial({ color: '#bd2f29', roughness: 0.52, metalness: 0.12 }),
+    emerald: new THREE.MeshStandardMaterial({ color: '#21704b', roughness: 0.68 }),
+    lrtBlue: new THREE.MeshStandardMaterial({ color: '#1f70b8', roughness: 0.42, metalness: 0.25 }),
+    slateRoof: new THREE.MeshStandardMaterial({ color: '#4e6070', roughness: 0.72, metalness: 0.15 }),
+    gold: new THREE.MeshStandardMaterial({ color: '#e2ae2e', roughness: 0.28, metalness: 0.65 }),
+    woodDark: new THREE.MeshStandardMaterial({ color: '#4e3320', roughness: 0.88 }),
+    woodMid: new THREE.MeshStandardMaterial({ color: '#784e30', roughness: 0.82 }),
+    steelLight: new THREE.MeshStandardMaterial({
+      color: '#dce2e8',
+      bumpMap: pbr.steelBump,
+      bumpScale: 0.1,
+      roughness: 0.36,
+      metalness: 0.5,
+    }),
+    cableSilver: new THREE.MeshStandardMaterial({ color: '#c4cdd8', roughness: 0.25, metalness: 0.78 }),
+    parkGrass: new THREE.MeshStandardMaterial({
+      color: '#88b37a',
+      map: pbr.grass.map,
+      bumpMap: pbr.grass.bumpMap,
+      bumpScale: 0.24,
+      roughness: 0.92,
+    }),
+    pitchGrass: new THREE.MeshStandardMaterial({
+      color: '#ffffff',
+      map: pbr.pitchMap,
+      roughness: 0.86,
+    }),
     fountainWater: new THREE.MeshStandardMaterial({
-      color: '#2c8a99',
-      roughness: 0.18,
-      metalness: 0.15,
+      color: '#258799',
+      roughness: 0.1,
+      metalness: 0.35,
     }),
     waterSpray: new THREE.MeshStandardMaterial({
       color: '#ddf6ff',
       transparent: true,
-      opacity: 0.74,
+      opacity: 0.76,
       emissive: '#89d4f5',
-      emissiveIntensity: 0.15,
-      roughness: 0.2,
+      emissiveIntensity: 0.2,
+      roughness: 0.18,
     }),
     windowGlow: new THREE.MeshStandardMaterial({
       color: '#ffe099',
       emissive: '#ffaa38',
-      emissiveIntensity: 0.15,
+      emissiveIntensity: 0.18,
     }),
     warmGlow: new THREE.MeshStandardMaterial({
       color: '#fff0c4',
       emissive: '#ffba49',
-      emissiveIntensity: 0.25,
+      emissiveIntensity: 0.3,
     }),
     stadiumLightGlow: new THREE.MeshStandardMaterial({
       color: '#fffaf0',
-      emissive: '#fff0c2',
-      emissiveIntensity: 0.3,
+      emissive: '#fff2cc',
+      emissiveIntensity: 0.35,
     }),
     musiLedGlow: new THREE.MeshStandardMaterial({
       color: '#b8e1ff',
       emissive: '#4fa8ff',
-      emissiveIntensity: 0.2,
+      emissiveIntensity: 0.25,
     }),
   };
 

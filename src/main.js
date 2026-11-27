@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import './style.css';
 import { createEnvironment } from './scene/environment.js';
 import { createRiverMusi } from './scene/riverMusi.js';
@@ -77,8 +81,8 @@ function init() {
   controls.target.set(...initialPreset.target);
   controls.update();
 
-  // Build scene modules
-  const env = createEnvironment(scene);
+  // Build scene modules (pass renderer for PMREM dynamic sky IBL reflections)
+  const env = createEnvironment(scene, renderer);
   const river = createRiverMusi(scene, env);
   const ampera = createAmperaBridge(scene, env);
   createKutoBesak(scene, env);
@@ -86,6 +90,32 @@ function init() {
   const city = createCityContext(scene, env);
   const extraLandmarks = createExtraLandmarks(scene, env);
   const urbanFabric = createUrbanFabric(scene, env);
+
+  // Post-processing pipeline (RenderPass -> UnrealBloomPass -> ACES/sRGB OutputPass)
+  const composer = new EffectComposer(renderer);
+  composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  composer.setSize(width, height);
+  const renderPass = new RenderPass(scene, camera);
+  composer.addPass(renderPass);
+  let lastSceneDrawCalls = 0;
+  let lastSceneTriangles = 0;
+  const origRender = renderPass.render.bind(renderPass);
+  renderPass.render = (r, writeBuffer, readBuffer, deltaTime, maskActive) => {
+    origRender(r, writeBuffer, readBuffer, deltaTime, maskActive);
+    lastSceneDrawCalls = r.info.render.calls;
+    lastSceneTriangles = r.info.render.triangles;
+  };
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 0.14, 0.32, 0.96);
+  composer.addPass(bloomPass);
+  composer.addPass(new OutputPass());
+
+  env.onLightingChange((cfg) => {
+    if (cfg.bloom) {
+      bloomPass.threshold = cfg.bloom.threshold;
+      bloomPass.strength = cfg.bloom.strength;
+      bloomPass.radius = cfg.bloom.radius;
+    }
+  });
 
   // Count meshes once scene is assembled
   let meshCount = 0;
@@ -138,6 +168,7 @@ function init() {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
+    composer.setSize(w, h);
   }
   window.addEventListener('resize', handleResize);
 
@@ -169,8 +200,8 @@ function init() {
         urbanStats: Object.freeze({ ...urbanFabric.stats }),
         fps,
         rendererInfo: Object.freeze({
-          drawCalls: renderer.info.render.calls,
-          triangles: renderer.info.render.triangles,
+          drawCalls: lastSceneDrawCalls,
+          triangles: lastSceneTriangles,
           webglRenderer: String(webglRendererStr || 'WebGL'),
         }),
         camera: Object.freeze({
@@ -197,6 +228,7 @@ function init() {
       if (t >= 1) tweenState = null;
     }
 
+    env.update(elapsed);
     river.update(elapsed, delta);
     ampera.update(elapsed, delta);
     city.update(elapsed);
@@ -204,7 +236,7 @@ function init() {
     urbanFabric.update(elapsed, delta);
 
     controls.update();
-    renderer.render(scene, camera);
+    composer.render();
 
     const w = rootEl.clientWidth || window.innerWidth;
     const h = rootEl.clientHeight || window.innerHeight;

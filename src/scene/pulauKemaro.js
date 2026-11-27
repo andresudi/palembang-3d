@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getPBRTextures } from './textures.js';
 
 function createTropicalTree(x, y, z, scale, foliageMat, trunkMat) {
   const g = new THREE.Group();
@@ -28,13 +29,38 @@ export function createPulauKemaro(scene, env) {
   const centerX = 215;
   const centerZ = 4.5;
 
+  const pbr = getPBRTextures();
   const sandMat = new THREE.MeshStandardMaterial({ color: '#c9b88b', roughness: 0.92 });
-  const grassMat = new THREE.MeshStandardMaterial({ color: '#4c7c44', roughness: 0.9 });
-  const stoneMat = new THREE.MeshStandardMaterial({ color: '#cbc4b6', roughness: 0.85 });
-  const crimsonMat = new THREE.MeshStandardMaterial({ color: '#c82824', roughness: 0.58 });
-  const creamMat = new THREE.MeshStandardMaterial({ color: '#f3efe3', roughness: 0.72 });
-  const eaveMat = new THREE.MeshStandardMaterial({ color: '#9c231e', roughness: 0.6 });
-  const goldMat = new THREE.MeshStandardMaterial({ color: '#d8a328', roughness: 0.38, metalness: 0.45 });
+  const grassMat = new THREE.MeshStandardMaterial({
+    color: '#88b37a',
+    map: pbr.grass.map,
+    bumpMap: pbr.grass.bumpMap,
+    bumpScale: 0.2,
+    roughness: 0.9,
+  });
+  const stoneMat = new THREE.MeshStandardMaterial({
+    color: '#ded7c9',
+    map: pbr.plaza.map,
+    bumpMap: pbr.plaza.bumpMap,
+    bumpScale: 0.16,
+    roughness: 0.84,
+  });
+  const crimsonMat = new THREE.MeshStandardMaterial({ color: '#c82824', roughness: 0.5, metalness: 0.12 });
+  const creamMat = new THREE.MeshStandardMaterial({
+    color: '#faf6eb',
+    map: pbr.plaster.map,
+    bumpMap: pbr.plaster.bumpMap,
+    bumpScale: 0.14,
+    roughness: 0.72,
+  });
+  const eaveMat = new THREE.MeshStandardMaterial({
+    color: '#c94338',
+    map: pbr.roofTile.map,
+    bumpMap: pbr.roofTile.bumpMap,
+    bumpScale: 0.22,
+    roughness: 0.58,
+  });
+  const goldMat = new THREE.MeshStandardMaterial({ color: '#e2ae2e', roughness: 0.28, metalness: 0.65 });
   const foliageMat = new THREE.MeshStandardMaterial({ color: '#2f6b3b', roughness: 0.85 });
   const trunkMat = new THREE.MeshStandardMaterial({ color: '#614129', roughness: 0.9 });
   const woodMat = new THREE.MeshStandardMaterial({ color: '#7a5233', roughness: 0.85 });

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GROUND_Y, getRiverBoundsAt } from './riverMusi.js';
+import { getPBRTextures } from './textures.js';
 
 function createHippedRoof(width, height, depth, ridgeLen, material) {
   const hw = width / 2;
@@ -20,8 +21,18 @@ function createHippedRoof(width, height, depth, ridgeLen, material) {
      hw, 0, hd,   hw, 0, -hd,   hr, height, 0,
   ]);
 
+  const uvs = new Float32Array([
+    0, 0,  width * 0.15, 0,  width * 0.11, depth * 0.15,
+    0, 0,  width * 0.11, depth * 0.15,  width * 0.04, depth * 0.15,
+    0, 0,  width * 0.15, 0,  width * 0.11, depth * 0.15,
+    0, 0,  width * 0.11, depth * 0.15,  width * 0.04, depth * 0.15,
+    0, 0,  depth * 0.15, 0,  depth * 0.075, depth * 0.15,
+    0, 0,  depth * 0.15, 0,  depth * 0.075, depth * 0.15,
+  ]);
+
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
   geo.computeVertexNormals();
   const mesh = new THREE.Mesh(geo, material);
   mesh.castShadow = true;
@@ -55,13 +66,42 @@ export function createKutoBesak(scene, env) {
   const riverBounds = getRiverBoundsAt(centerX);
   const bankEdgeZ = riverBounds.northEdgeZ; // ~ -47.2
 
-  const wallCream = new THREE.MeshStandardMaterial({ color: '#ebe3d0', roughness: 0.84 });
-  const wallWeather = new THREE.MeshStandardMaterial({ color: '#d5cbb5', roughness: 0.88 });
-  const terracotta = new THREE.MeshStandardMaterial({ color: '#a84a34', roughness: 0.78 });
+  const pbr = getPBRTextures();
+  const wallCream = new THREE.MeshStandardMaterial({
+    color: '#f5efe2',
+    map: pbr.plaster.map,
+    bumpMap: pbr.plaster.bumpMap,
+    bumpScale: 0.22,
+    roughness: 0.84,
+  });
+  const wallWeather = new THREE.MeshStandardMaterial({
+    color: '#dfd5c0',
+    map: pbr.plaster.map,
+    bumpMap: pbr.plaster.bumpMap,
+    bumpScale: 0.25,
+    roughness: 0.88,
+  });
+  const terracotta = new THREE.MeshStandardMaterial({
+    color: '#e8b9aa',
+    map: pbr.roofTile.map,
+    bumpMap: pbr.roofTile.bumpMap,
+    bumpScale: 0.26,
+    roughness: 0.78,
+  });
   const darkWood = new THREE.MeshStandardMaterial({ color: '#5c3a24', roughness: 0.82 });
-  const plazaStone = new THREE.MeshStandardMaterial({ color: '#c4bdb0', roughness: 0.85 });
+  const plazaStone = new THREE.MeshStandardMaterial({
+    color: '#dad3c6',
+    map: pbr.plaza.map,
+    bumpMap: pbr.plaza.bumpMap,
+    bumpScale: 0.18,
+    roughness: 0.84,
+  });
   const plazaAccent = new THREE.MeshStandardMaterial({ color: '#9c9487', roughness: 0.88 });
-  const lawnMat = new THREE.MeshStandardMaterial({ color: '#4d7343', roughness: 0.92 });
+  const lawnMat = new THREE.MeshStandardMaterial({
+    color: '#8cae7c',
+    map: pbr.grass.map,
+    roughness: 0.92,
+  });
   const lampGlow = new THREE.MeshStandardMaterial({
     color: '#ffe5a8',
     emissive: '#ffab40',

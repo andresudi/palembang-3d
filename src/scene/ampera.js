@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getPBRTextures } from './textures.js';
 
 function addBeam(parent, p1, p2, thickness, material) {
   const dir = new THREE.Vector3().subVectors(p2, p1);
@@ -170,23 +171,52 @@ export function createAmperaBridge(scene, env) {
   const group = new THREE.Group();
   group.name = 'JembatanAmpera';
 
+  const pbr = getPBRTextures();
   const materials = {
-    steelRed: new THREE.MeshStandardMaterial({ color: '#b8332a', roughness: 0.52, metalness: 0.25 }),
-    steelDarkRed: new THREE.MeshStandardMaterial({ color: '#8f241d', roughness: 0.6, metalness: 0.3 }),
-    asphalt: new THREE.MeshStandardMaterial({ color: '#2e3239', roughness: 0.88 }),
-    sidewalk: new THREE.MeshStandardMaterial({ color: '#b5afa4', roughness: 0.8 }),
-    concrete: new THREE.MeshStandardMaterial({ color: '#c4beb3', roughness: 0.85 }),
-    cable: new THREE.MeshStandardMaterial({ color: '#585e66', roughness: 0.4, metalness: 0.6 }),
-    accentGold: new THREE.MeshStandardMaterial({ color: '#d8ad5c', roughness: 0.45, metalness: 0.35 }),
+    steelRed: new THREE.MeshStandardMaterial({
+      color: '#b8332a',
+      bumpMap: pbr.steelBump,
+      bumpScale: 0.14,
+      roughness: 0.42,
+      metalness: 0.38,
+    }),
+    steelDarkRed: new THREE.MeshStandardMaterial({
+      color: '#8f241d',
+      bumpMap: pbr.steelBump,
+      bumpScale: 0.14,
+      roughness: 0.48,
+      metalness: 0.42,
+    }),
+    asphalt: new THREE.MeshStandardMaterial({
+      color: '#aeb4bc',
+      map: pbr.asphalt.map,
+      bumpMap: pbr.asphalt.bumpMap,
+      bumpScale: 0.18,
+      roughness: 0.88,
+    }),
+    sidewalk: new THREE.MeshStandardMaterial({
+      color: '#c7c0b4',
+      map: pbr.plaza.map,
+      roughness: 0.82,
+    }),
+    concrete: new THREE.MeshStandardMaterial({
+      color: '#d4cec4',
+      map: pbr.plaster.map,
+      bumpMap: pbr.plaster.bumpMap,
+      bumpScale: 0.18,
+      roughness: 0.85,
+    }),
+    cable: new THREE.MeshStandardMaterial({ color: '#6b727c', roughness: 0.32, metalness: 0.72 }),
+    accentGold: new THREE.MeshStandardMaterial({ color: '#e0b35c', roughness: 0.34, metalness: 0.58 }),
     lampGlow: new THREE.MeshStandardMaterial({
       color: '#ffe8b3',
       emissive: '#ffaa3b',
-      emissiveIntensity: 0.15,
+      emissiveIntensity: 0.2,
     }),
     beaconMat: new THREE.MeshStandardMaterial({
       color: '#ff4d3b',
       emissive: '#ff2b1a',
-      emissiveIntensity: 0.4,
+      emissiveIntensity: 0.5,
     }),
   };
 

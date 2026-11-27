@@ -24,7 +24,8 @@ Bagian ini mendokumentasikan secara persis apa yang telah dibangun dan diverifik
   - `package.json`, `vite.config.js` (`base: './'`, `outDir: 'dist'`), `index.html`
   - `src/main.js` — inisialisasi `WebGLRenderer` (dengan fallback error jika WebGL tidak tersedia), `OrbitControls` dengan batas sudut polar dan jarak, *camera tweening*, dan telemetri read-only `window.__PALEMBANG_3D__`
   - `src/style.css` — gaya HUD (*heads-up display*) kontras tinggi untuk kontrol preset, mode pencahayaan, dan kartu informasi
-  - `src/scene/environment.js` — kubah langit shader prosedural, kabut eksponensial (`FogExp2`), pencahayaan dan bayangan terarah untuk 3 mode (`siang`, `senja`, `malam`)
+  - `src/scene/textures.js` — generator tekstur PBR prosedural via `<canvas>` (aspal berbutir, paving batu plaza, rumput tropis, genteng terakota, plester kolonial, baja bertekstur, rumput stadion, serta fasad ruko multi-lantai dengan `emissiveMap` jendela menyala malam)
+  - `src/scene/environment.js` — kubah langit shader prosedural (awan tropis & bintang malam), IBL refleksi langit dinamis (`PMREMGenerator`), kabut eksponensial (`FogExp2`), pencahayaan dan bayangan terarah, serta parameter `UnrealBloomPass` untuk 3 mode (`siang`, `senja`, `malam`)
   - `src/scene/riverMusi.js` — permukaan air Sungai Musi berbasis shader riak animasi, tepian berkontur Seberang Ilir (`-Z`) & Seberang Ulu (`+Z`), turap penahan, dermaga, 5 *perahu ketek*, dan 2 tongkang batu bara + kapal tunda
   - `src/scene/ampera.js` — Jembatan Ampera merah bata dengan dua menara portal-H, rangka baja, kabel vertikal, beban penyeimbang, lampu jalan, serta kendaraan yang melintas
   - `src/scene/kutoBesak.js` — Benteng Kuto Besak berdenah ~1,6:1 menghadap Sungai Musi, 4 bastion sudut, gerbang *Lawang Kuto*, bangunan halaman dalam beratap limasan, bendera Merah-Putih, dan Plaza BKB beserta dermaganya
@@ -41,10 +42,10 @@ Bagian ini mendokumentasikan secara persis apa yang telah dibangun dan diverifik
 Seluruh perintah berikut dieksekusi dari repositori proyek ini (pada host macOS dengan Node `v24.22.1` di `PATH`) dan keluar dengan **exit code 0**:
 
 - **`npm install`**: Menginstal 43 paket dependensi (termasuk dependensi transitif sesuai `package-lock.json`).
-- **`npm run build`**: `vite build` mentransformasi 18 modul dan menghasilkan bundel produksi di `dist/` dalam **~127–135 ms** (dengan ukuran berkas: `dist/index.html` 0,42 kB, `dist/assets/index-*.css` 5,14 kB / 1,68 kB gzip, `dist/assets/index-*.js` 635,97 kB / 162,39 kB gzip).
+- **`npm run build`**: `vite build` mentransformasi 29 modul dan menghasilkan bundel produksi di `dist/` dalam **~143–165 ms** (dengan ukuran berkas: `dist/index.html` 0,42 kB, `dist/assets/index-*.css` 5,14 kB / 1,68 kB gzip, `dist/assets/index-*.js` 668,76 kB / 170,44 kB gzip).
 - **`npm run verify`**: Menjalankan `node scripts/verify.mjs` terhadap `vite preview` pada `http://127.0.0.1:4179/`:
-  - **Telemetri WebGL2 terukur (`SwiftShader`):** `meshCount: 1.091`, `triangles: ~242.628–242.630`, `drawCalls: ~1.496–1.497`, `landmarkCount: 10`, `urbanStats: { rukoCount: 81, houseCount: 241, treeCount: 978, lampCount: 68, roadCarCount: 40 }`.
-  - **Validasi error, non-blank, & tata letak mobile:** `consoleErrors: 0`, `pageErrors: 0`; uji sampling piksel kanvas `16×16` lolos dengan `spread: 591` dan `uniqueBuckets: 129` (bukan layar kosong); uji viewport mobile `390×844` lolos (`mobileBounds.fits: true`, seluruh kontrol HUD berada di dalam lebar `390 px`).
+  - **Telemetri WebGL2 terukur (`SwiftShader`):** `meshCount: 1.090`, `triangles: ~241.656–241.658`, `drawCalls: ~1.495–1.496`, `landmarkCount: 10`, `urbanStats: { rukoCount: 81, houseCount: 241, treeCount: 978, lampCount: 68, roadCarCount: 40 }`.
+  - **Validasi error, non-blank, & tata letak mobile:** `consoleErrors: 0`, `pageErrors: 0`; uji sampling piksel kanvas `16×16` lolos dengan `spread: 522` dan `uniqueBuckets: 114` (bukan layar kosong); uji viewport mobile `390×844` lolos (`mobileBounds.fits: true`, seluruh kontrol HUD berada di dalam lebar `390 px`).
   - **Tangkapan layar terverifikasi (13 PNG di `artifacts/`):** `preview-overview.png`, `preview-ampera.png`, `preview-masjid-lrt.png`, `preview-pasar16.png`, `preview-bkb.png`, `preview-walikota-ki.png`, `preview-kapitan.png`, `preview-jakabaring.png`, `preview-musi-iv.png`, `preview-kemaro.png`, `preview-sunset.png`, `preview-jakabaring-night.png`, dan `preview-night.png` — seluruhnya telah diperiksa secara visual.
 
 ### 2.3 Batasan Sengaja pada Prototipe

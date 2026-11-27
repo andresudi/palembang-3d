@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getPBRTextures } from './textures.js';
 
 export const GROUND_Y = 3.2;
 
@@ -79,16 +80,20 @@ function buildBankMesh({ side, xMin, xMax, zOuter, xSegments, matGround }) {
 
 function buildQuayStrip({ side, xMin, xMax, xSegments, material, width, yOffset }) {
   const positions = [];
+  const uvs = [];
   const indices = [];
   const dir = side === 'north' ? -1 : 1;
 
   for (let i = 0; i <= xSegments; i++) {
-    const x = xMin + (i / xSegments) * (xMax - xMin);
+    const t = i / xSegments;
+    const x = xMin + t * (xMax - xMin);
     const bounds = getRiverBoundsAt(x);
     const edgeZ = side === 'north' ? bounds.northEdgeZ : bounds.southEdgeZ;
 
     positions.push(x, GROUND_Y + yOffset, edgeZ);
+    uvs.push(t * 28, 0);
     positions.push(x, GROUND_Y + yOffset, edgeZ + dir * width);
+    uvs.push(t * 28, 1);
   }
 
   for (let i = 0; i < xSegments; i++) {
@@ -105,6 +110,7 @@ function buildQuayStrip({ side, xMin, xMax, xSegments, material, width, yOffset 
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geo.setIndex(indices);
   geo.computeVertexNormals();
 
@@ -303,26 +309,38 @@ export function createRiverMusi(scene, env) {
       void main() {
         vec3 viewDir = normalize(cameraPosition - vWorldPos);
 
-        // Procedural ripple normal perturbation
-        float nx = cos(vWorldPos.x * 0.16 + uTime * 1.6) * 0.09
-                 + cos(vWorldPos.x * 0.37 - vWorldPos.z * 0.25 + uTime * 2.1) * 0.05;
-        float nz = sin(vWorldPos.z * 0.21 + uTime * 1.2) * 0.08
-                 + sin(vWorldPos.x * 0.28 + vWorldPos.z * 0.32 - uTime * 1.7) * 0.05;
+        // Procedural multi-octave ripple normal perturbation with downstream Musi flow (+X)
+        float flowX = vWorldPos.x - uTime * 2.4;
+        float nx = cos(flowX * 0.16 + uTime * 1.4) * 0.1
+                 + cos(flowX * 0.39 - vWorldPos.z * 0.27 + uTime * 2.1) * 0.06
+                 + cos(flowX * 0.72 + vWorldPos.z * 0.44 - uTime * 2.6) * 0.03;
+        float nz = sin(vWorldPos.z * 0.22 + uTime * 1.2) * 0.09
+                 + sin(flowX * 0.29 + vWorldPos.z * 0.34 - uTime * 1.7) * 0.06
+                 + sin(flowX * 0.64 - vWorldPos.z * 0.52 + uTime * 2.3) * 0.03;
         vec3 normal = normalize(vec3(nx, 1.0, nz));
 
-        float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), 3.2);
-        vec3 baseCol = mix(uWaterDeep, uWaterShallow, 0.38 + 0.22 * vWave);
-        vec3 col = mix(baseCol, uSkyHorizon, clamp(fresnel * 0.65, 0.0, 0.72));
+        float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), 3.4);
+        vec3 baseCol = mix(uWaterDeep, uWaterShallow, 0.36 + 0.24 * vWave);
+        vec3 col = mix(baseCol, uSkyHorizon, clamp(fresnel * 0.50, 0.0, 0.58));
 
         // Sun / Moon specular shimmer
         vec3 halfVec = normalize(normalize(uSunDir) + viewDir);
-        float spec = pow(max(dot(normal, halfVec), 0.0), 58.0);
-        col += uSunColor * spec * (0.85 - 0.35 * uNightGlow);
+        float spec = pow(max(dot(normal, halfVec), 0.0), 72.0);
+        float broadSpec = pow(max(dot(normal, halfVec), 0.0), 14.0);
+        col += uSunColor * (spec * (1.05 - 0.35 * uNightGlow) + broadSpec * 0.14);
 
         // Warm Ampera bridge reflection band on river around x = 0 in dusk/night
-        float amperaProx = exp(-pow(vWorldPos.x / 18.0, 2.0)) * exp(-pow(vWorldPos.z / 38.0, 2.0));
-        float rippleBand = 0.6 + 0.4 * sin(vWorldPos.z * 0.9 + uTime * 3.0);
-        col += vec3(0.95, 0.42, 0.22) * amperaProx * rippleBand * uNightGlow * 0.45;
+        float rippleBand = 0.55 + 0.45 * sin(vWorldPos.z * 0.95 + uTime * 3.1 + nx * 8.0);
+        float amperaProx = exp(-pow(vWorldPos.x / 20.0, 2.0)) * exp(-pow(vWorldPos.z / 42.0, 2.0));
+        col += vec3(1.0, 0.44, 0.22) * amperaProx * rippleBand * uNightGlow * 0.62;
+
+        // Cool cyan-blue Jembatan Musi IV reflection at x = 120 in dusk/night
+        float musi4Prox = exp(-pow((vWorldPos.x - 120.0) / 18.0, 2.0)) * exp(-pow((vWorldPos.z - 5.0) / 46.0, 2.0));
+        col += vec3(0.32, 0.7, 1.0) * musi4Prox * rippleBand * uNightGlow * 0.52;
+
+        // Warm gold Pagoda Pulau Kemaro reflection at x = 203 in dusk/night
+        float kemaroProx = exp(-pow((vWorldPos.x - 203.0) / 24.0, 2.0)) * exp(-pow((vWorldPos.z - 4.5) / 28.0, 2.0));
+        col += vec3(1.0, 0.68, 0.24) * kemaroProx * rippleBand * uNightGlow * 0.42;
 
         // Exponential squared fog matching Three.js FogExp2
         float dist = length(cameraPosition - vWorldPos);
@@ -340,9 +358,22 @@ export function createRiverMusi(scene, env) {
   waterMesh.name = 'WaterSurface';
   group.add(waterMesh);
 
-  // Land terrain meshes (Seberang Ilir north, Seberang Ulu south)
-  const groundMat = new THREE.MeshStandardMaterial({ color: '#587447', roughness: 0.94 });
-  const quayMat = new THREE.MeshStandardMaterial({ color: '#a8a296', roughness: 0.85 });
+  // Land terrain meshes (Seberang Ilir north, Seberang Ulu south) with organic PBR turf texture
+  const pbr = getPBRTextures();
+  const groundMat = new THREE.MeshStandardMaterial({
+    color: '#9db58d',
+    map: pbr.grass.map,
+    bumpMap: pbr.grass.bumpMap,
+    bumpScale: 0.35,
+    roughness: 0.95,
+  });
+  const quayMat = new THREE.MeshStandardMaterial({
+    color: '#c4bdb0',
+    map: pbr.plaza.map,
+    bumpMap: pbr.plaza.bumpMap,
+    bumpScale: 0.2,
+    roughness: 0.85,
+  });
 
   const northBank = buildBankMesh({
     side: 'north',

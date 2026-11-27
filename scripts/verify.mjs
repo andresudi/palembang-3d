@@ -74,8 +74,8 @@ async function waitForSettled(page) {
     null,
     { timeout: 10000 }
   );
-  // Let SwiftShader render 3 extra frames after tween finishes
-  await page.waitForTimeout(350);
+  // Let SwiftShader render extra frames and finish HUD CSS transitions after tween
+  await page.waitForTimeout(550);
 }
 
 async function sampleCanvasNonUniformity(page) {
