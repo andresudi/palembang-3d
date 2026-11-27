@@ -1,204 +1,207 @@
-# Analisis Kelayakan, Pola Eksekusi, Estimasi Usaha/Token, dan Rekomendasi Model AI untuk Visualisasi 3D Kota Palembang
+# Feasibility Analysis, Execution Patterns, Effort/Token Estimates, and AI Model Recommendations for a 3D Visualization of Palembang City
 
-Dokumen ini menyajikan kajian kritis terhadap pengembangan visualisasi 3D Kota Palembang—dimulai dari prototipe eksplorasi awal yang telah dibangun dan diverifikasi pada repositori ini, hingga proyeksi menuju model kota berbasis data GIS (*city-scale*) maupun kembaran digital (*digital twin*). Setiap klaim mengenai prototipe diikat secara ketat (*1:1 consistency lock*) dengan berkas sumber, perintah terminal, dan hasil verifikasi aktual di repositori proyek ini.
+This document presents a critical assessment of building a 3D visualization of Palembang City — starting from the early exploratory prototype built and verified in this repository, through to projections toward a GIS-driven city-scale model and a digital twin. Every claim about the prototype is strictly tied (*1:1 consistency lock*) to the source files, terminal commands, and actual verification results in this project repository.
 
----
-
-## 1. Ringkasan Eksekutif
-
-1. **Kelayakan (Feasibility):** Membangun visualisasi 3D Kota Palembang **sangat layak (tinggi)** pada level *Stylized Procedural Prototype* untuk kebutuhan eksplorasi awal, tata ruang konseptual, dan pariwisata digital (sebagaimana dibuktikan oleh prototipe Three.js + Vite pada proyek ini). Kelayakan turun menjadi **menengah** untuk *GIS-Driven City Model* (keterbatasan atribut ketinggian bangunan pada OpenStreetMap di Palembang serta resolusi DEMNAS ~8 m), dan **rendah hingga bersyarat** untuk *Photorealistic Digital Twin / 3D Tiles* karena cakupan *mesh* 3D komersial untuk kota sekunder di Indonesia belum seragam dan biaya akuisisi UAV/LiDAR tinggi.
-2. **Fitur & Pola Eksekusi Tepat Guna:** Untuk prototipe kecil (~15–20 berkas), **Single-Agent Iteratif dengan loop verifikasi screenshot** atau **Human-in-the-Loop Co-pilot** jauh lebih efisien dibandingkan orkestrasi multi-agen yang kompleks. Namun, saat skala naik ke ratusan kilometer persegi data geospasial, pola terbaik bergeser ke **Deterministic Pipeline / DAG** (ETL GIS → *tiling* 3D → *viewer*) yang didampingi agen hanya untuk penulisan skrip, UI, dan QA.
-3. **Estimasi Usaha & Konsumsi Token:** Prototipe *stylized* dapat diselesaikan dalam hitungan **~6–14 jam kerja efektif** (atau **~480 ribu–1,43 juta total token** jika dikerjakan secara otonom dengan loop verifikasi visual dan QA—batas bawah untuk *single-agent* terarah, batas atas untuk *multi-agent* berlapis), sedangkan skala GIS kota membutuhkan **3–8 minggu** (dan dapat menyentuh jutaan token jika agen terlibat dalam iterasi kode, pembersihan data, dan QA berulang). Sebagian besar konsumsi token (**~75–90%**) berasal dari **amplifikasi konteks input** (riwayat percakapan, output alat, dan token gambar screenshot), bukan dari jumlah baris kode output.
-4. **Rekomendasi Model AI:** Tidak ada satu model optimal untuk semua fase. Strategi biaya-performa terbaik memisahkan **model penalaran tinggi** untuk arsitektur/debugging spasial, **model coding cepat** untuk boilerplate/ETL, dan **model multimodal (vision)** khusus untuk inspeksi visual hasil render WebGL agar cacat geometri (*floating mesh*, tumpang-tindih label, atau framing tertutup UI) tertangkap sejak dini.
+> [!NOTE]
+> This analysis was written for the offline **Stylized PBR Diorama** mode. The later **Real Satellite 3D** mode (MapLibre + Esri imagery + OSM 3D buildings + terrain + Three.js hero landmarks) is documented in [README.md](README.md).
 
 ---
 
-## 2. Spesifikasi & Batasan Prototipe Terverifikasi (Consistency Anchor)
+## 1. Executive Summary
 
-Bagian ini mendokumentasikan secara persis apa yang telah dibangun dan diverifikasi di repositori proyek ini, memisahkan realitas prototipe (Tier 1) dari target skala kota (Tier 2–3).
+1. **Feasibility:** Building a 3D visualization of Palembang is **highly feasible** at the *Stylized Procedural Prototype* level for early exploration, conceptual spatial planning, and digital tourism (as demonstrated by the Three.js + Vite prototype in this project). Feasibility drops to **medium** for a *GIS-Driven City Model* (sparse building-height attributes in OpenStreetMap for Palembang and the ~8 m resolution of DEMNAS), and to **low-to-conditional** for a *Photorealistic Digital Twin / 3D Tiles*, because commercial 3D mesh coverage for secondary Indonesian cities is still uneven and UAV/LiDAR acquisition is expensive.
+2. **Fit-for-Purpose Features & Execution Patterns:** For a small prototype (~15–20 files), an **Iterative Single Agent with a screenshot verification loop** or a **Human-in-the-Loop Co-pilot** is far more efficient than complex multi-agent orchestration. Once the scope grows to hundreds of square kilometers of geospatial data, the best pattern shifts to a **Deterministic Pipeline / DAG** (GIS ETL → 3D tiling → viewer), with agents used only for scripting, UI, and QA.
+3. **Effort & Token Consumption:** The *stylized* prototype can be completed in roughly **~6–14 effective working hours** (or **~480K–1.43M total tokens** when done autonomously with visual verification and QA loops — the lower bound for a focused *single agent*, the upper bound for layered *multi-agent* setups), while a city-scale GIS model takes **3–8 weeks** (and can reach millions of tokens if agents are involved in code iteration, data cleaning, and repeated QA). Most token consumption (**~75–90%**) comes from **input context amplification** (conversation history, tool outputs, and screenshot image tokens), not from the number of lines of output code.
+4. **AI Model Recommendations:** No single model is optimal for every phase. The best cost/performance strategy separates **high-reasoning models** for architecture and spatial debugging, **fast coding models** for boilerplate/ETL, and **multimodal (vision) models** specifically for visual inspection of WebGL renders, so that geometry defects (*floating meshes*, overlapping labels, or framing blocked by UI) are caught early.
 
-### 2.1 Inventaris Berkas & Teknologi Terpasang
+---
 
-- **Stack terpasang (`package.json`):** `three` (`^0.187.0`) dan `vite` (`^8.4.0`), modul ES vanilla tanpa *framework* UI tambahan dan **tanpa panggilan CDN saat runtime**.
-- **Struktur berkas aktual:**
+## 2. Verified Prototype Specification & Limits (Consistency Anchor)
+
+This section documents exactly what was built and verified in this project repository, separating the prototype reality (Tier 1) from city-scale targets (Tiers 2–3).
+
+### 2.1 File Inventory & Installed Technology
+
+- **Installed stack (`package.json`):** `three` (`^0.187.0`) and `vite` (`^8.4.0`), vanilla ES modules with no additional UI *framework* and **no CDN calls at runtime**.
+- **Actual file structure:**
   - `package.json`, `vite.config.js` (`base: './'`, `outDir: 'dist'`), `index.html`
-  - `src/main.js` — inisialisasi `WebGLRenderer` (dengan fallback error jika WebGL tidak tersedia), `OrbitControls` dengan batas sudut polar dan jarak, *camera tweening*, dan telemetri read-only `window.__PALEMBANG_3D__`
-  - `src/style.css` — gaya HUD (*heads-up display*) kontras tinggi untuk kontrol preset, mode pencahayaan, dan kartu informasi
-  - `src/scene/textures.js` — generator tekstur PBR prosedural via `<canvas>` (aspal berbutir, paving batu plaza, rumput tropis, genteng terakota, plester kolonial, baja bertekstur, rumput stadion, serta fasad ruko multi-lantai dengan `emissiveMap` jendela menyala malam)
-  - `src/scene/environment.js` — kubah langit shader prosedural (awan tropis & bintang malam), IBL refleksi langit dinamis (`PMREMGenerator`), kabut eksponensial (`FogExp2`), pencahayaan dan bayangan terarah, serta parameter `UnrealBloomPass` untuk 3 mode (`siang`, `senja`, `malam`)
-  - `src/scene/riverMusi.js` — permukaan air Sungai Musi berbasis shader riak animasi, tepian berkontur Seberang Ilir (`-Z`) & Seberang Ulu (`+Z`), turap penahan, dermaga, 5 *perahu ketek*, dan 2 tongkang batu bara + kapal tunda
-  - `src/scene/ampera.js` — Jembatan Ampera merah bata dengan dua menara portal-H, rangka baja, kabel vertikal, beban penyeimbang, lampu jalan, serta kendaraan yang melintas
-  - `src/scene/kutoBesak.js` — Benteng Kuto Besak berdenah ~1,6:1 menghadap Sungai Musi, 4 bastion sudut, gerbang *Lawang Kuto*, bangunan halaman dalam beratap limasan, bendera Merah-Putih, dan Plaza BKB beserta dermaganya
-  - `src/scene/pulauKemaro.js` — Pulau Kemaro dengan Pagoda oktagonal sembilan lantai merah-emas, Klenteng Hok Tjing Rio, pepohonan tropis (*Pohon Cinta*), dan dermaga kayu
-  - `src/scene/cityContext.js` — Masjid Agung SMB I (atap tumpang tiga tingkat dan menara putih), Monpera, jalur layang LRT Sumsel (dari Stasiun Ampera hingga Stasiun Jakabaring + rangkaian kereta 3 gerbong animasi), dan gugus rumah panggung *Rumah Limas*
-  - `src/scene/landmarksExtra.js` — 7 kawasan/tengara tambahan: Bundaran Air Mancur Masjid Agung (air mancur animasi), Gedung & Kawasan Pasar 16 Ilir, Kantor Walikota (Menara Air / Gedung Ledeng) + Museum SMB II, Taman & Danau Kambang Iwak, Kampung Kapitan 7 Ulu, Stadion Gelora Sriwijaya Jakabaring (4 menara lampu sorot + Stasiun LRT Jakabaring), dan Jembatan Musi IV (*cable-stayed* + lalu lintas animasi)
-  - `src/scene/urbanFabric.js` — zoning permukaan kota (komersial/permukiman/taman), jaringan jalan arteri & kolektor bermarka, serta kepadatan kota berbasis `InstancedMesh` (81 ruko berjendela menyala malam, 241 rumah permukiman, 978 pohon tropis & sabuk hijau tepi peta, 68 lampu jalan, dan 40 kendaraan jalan animasi)
-  - `src/ui/landmarks.js` & `src/ui/hud.js` — 10 preset kamera (`Overview`, `Ampera`, `Bundaran & Masjid`, `Pasar 16 Ilir`, `Kuto Besak`, `Walikota & KI`, `Kampung Kapitan`, `Jakabaring`, `Jembatan Musi IV`, `Pulau Kemaro`), pin Label 3D yang dapat diklik langsung, sakelar `Siang`/`Senja`/`Malam`, tombol `Label 3D`, dan kartu informasi
-  - `scripts/verify.mjs` — skrip verifikasi otomatis berbasis `vite preview` + Playwright headless Chromium (`ANGLE SwiftShader` WebGL2)
+  - `src/main.js` — `WebGLRenderer` initialization (with an error fallback when WebGL is unavailable), `OrbitControls` with polar-angle and distance limits, *camera tweening*, and read-only telemetry on `window.__PALEMBANG_3D__`
+  - `src/style.css` — high-contrast HUD (*heads-up display*) styles for preset controls, lighting modes, and the info card
+  - `src/scene/textures.js` — procedural PBR texture generator via `<canvas>` (grainy asphalt, plaza stone paving, tropical grass, terracotta roof tiles, colonial plaster, textured steel, stadium turf, and multi-story shophouse facades with an `emissiveMap` for windows that light up at night)
+  - `src/scene/environment.js` — procedural shader sky dome (tropical clouds & night stars), dynamic sky reflection IBL (`PMREMGenerator`), exponential fog (`FogExp2`), directional lighting and shadows, and `UnrealBloomPass` parameters for 3 modes (`siang`/day, `senja`/sunset, `malam`/night)
+  - `src/scene/riverMusi.js` — Musi River water surface with an animated ripple shader, contoured banks for Seberang Ilir (`-Z`) & Seberang Ulu (`+Z`), retaining walls, jetties, 5 *ketek* boats, and 2 coal barges + tugboats
+  - `src/scene/ampera.js` — brick-red Ampera Bridge with two H-portal towers, steel trusses, vertical cables, counterweights, streetlights, and passing vehicles
+  - `src/scene/kutoBesak.js` — Kuto Besak Fort with a ~1.6:1 footprint facing the Musi River, 4 corner bastions, the *Lawang Kuto* gate, inner-courtyard buildings with *limasan* roofs, the Red-and-White flag, and the BKB Plaza with its jetty
+  - `src/scene/pulauKemaro.js` — Kemaro Island with the red-and-gold nine-story octagonal Pagoda, the Hok Tjing Rio temple, tropical trees (*Love Tree*), and a wooden jetty
+  - `src/scene/cityContext.js` — SMB I Great Mosque (three-tiered *tumpang* roof and white minaret), Monpera, the South Sumatra LRT elevated track (from Ampera Station to Jakabaring Station + an animated 3-car train), and a cluster of *Rumah Limas* stilt houses
+  - `src/scene/landmarksExtra.js` — 7 additional districts/landmarks: the Great Mosque Fountain Roundabout (animated fountain), the Pasar 16 Ilir building & district, the Mayor's Office (Water Tower / *Gedung Ledeng*) + SMB II Museum, Kambang Iwak Park & Lake, Kampung Kapitan 7 Ulu, Gelora Sriwijaya Jakabaring Stadium (4 floodlight towers + Jakabaring LRT Station), and the Musi IV Bridge (*cable-stayed* + animated traffic)
+  - `src/scene/urbanFabric.js` — urban surface zoning (commercial/residential/park), a marked arterial & collector road network, and `InstancedMesh`-based city density (81 shophouses with night-lit windows, 241 residential houses, 978 tropical trees & a green belt along the map edge, 68 streetlamps, and 40 animated road vehicles)
+  - `src/ui/landmarks.js` & `src/ui/hud.js` — 10 camera presets (`Overview`, `Ampera`, `Bundaran & Masjid`, `Pasar 16 Ilir`, `Kuto Besak`, `Walikota & KI`, `Kampung Kapitan`, `Jakabaring`, `Jembatan Musi IV`, `Pulau Kemaro`), directly clickable 3D Label pins, a `Siang`/`Senja`/`Malam` switch, a `Label 3D` toggle, and the info card
+  - `scripts/verify.mjs` — automated verification script based on `vite preview` + Playwright headless Chromium (`ANGLE SwiftShader` WebGL2)
   - `README.md` & `ANALISIS_PALEMBANG_3D.md`
 
-### 2.2 Perintah Terverifikasi & Hasil Eksekusi Aktual
+### 2.2 Verified Commands & Actual Execution Results
 
-Seluruh perintah berikut dieksekusi dari repositori proyek ini (pada host macOS dengan Node `v24.22.1` di `PATH`) dan keluar dengan **exit code 0**:
+All of the following commands were executed from this project repository (on a macOS host with Node `v24.22.1` on `PATH`) and exited with **exit code 0**:
 
-- **`npm install`**: Menginstal 43 paket dependensi (termasuk dependensi transitif sesuai `package-lock.json`).
-- **`npm run build`**: `vite build` mentransformasi 29 modul dan menghasilkan bundel produksi di `dist/` dalam **~143–165 ms** (dengan ukuran berkas: `dist/index.html` 0,42 kB, `dist/assets/index-*.css` 5,14 kB / 1,68 kB gzip, `dist/assets/index-*.js` 668,76 kB / 170,44 kB gzip).
-- **`npm run verify`**: Menjalankan `node scripts/verify.mjs` terhadap `vite preview` pada `http://127.0.0.1:4179/`:
-  - **Telemetri WebGL2 terukur (`SwiftShader`):** `meshCount: 1.090`, `triangles: ~241.656–241.658`, `drawCalls: ~1.495–1.496`, `landmarkCount: 10`, `urbanStats: { rukoCount: 81, houseCount: 241, treeCount: 978, lampCount: 68, roadCarCount: 40 }`.
-  - **Validasi error, non-blank, & tata letak mobile:** `consoleErrors: 0`, `pageErrors: 0`; uji sampling piksel kanvas `16×16` lolos dengan `spread: 522` dan `uniqueBuckets: 114` (bukan layar kosong); uji viewport mobile `390×844` lolos (`mobileBounds.fits: true`, seluruh kontrol HUD berada di dalam lebar `390 px`).
-  - **Tangkapan layar terverifikasi (13 PNG di `artifacts/`):** `preview-overview.png`, `preview-ampera.png`, `preview-masjid-lrt.png`, `preview-pasar16.png`, `preview-bkb.png`, `preview-walikota-ki.png`, `preview-kapitan.png`, `preview-jakabaring.png`, `preview-musi-iv.png`, `preview-kemaro.png`, `preview-sunset.png`, `preview-jakabaring-night.png`, dan `preview-night.png` — seluruhnya telah diperiksa secara visual.
+- **`npm install`**: Installs 43 dependency packages (including transitive dependencies per `package-lock.json`).
+- **`npm run build`**: `vite build` transforms 29 modules and produces a production bundle in `dist/` in **~143–165 ms** (file sizes: `dist/index.html` 0.42 kB, `dist/assets/index-*.css` 5.14 kB / 1.68 kB gzip, `dist/assets/index-*.js` 668.76 kB / 170.44 kB gzip).
+- **`npm run verify`**: Runs `node scripts/verify.mjs` against `vite preview` at `http://127.0.0.1:4179/`:
+  - **Measured WebGL2 telemetry (`SwiftShader`):** `meshCount: 1,090`, `triangles: ~241,656–241,658`, `drawCalls: ~1,495–1,496`, `landmarkCount: 10`, `urbanStats: { rukoCount: 81, houseCount: 241, treeCount: 978, lampCount: 68, roadCarCount: 40 }`.
+  - **Error, non-blank & mobile layout validation:** `consoleErrors: 0`, `pageErrors: 0`; the `16×16` canvas pixel-sampling test passes with `spread: 522` and `uniqueBuckets: 114` (not a blank screen); the `390×844` mobile viewport test passes (`mobileBounds.fits: true`, all HUD controls fit within the `390 px` width).
+  - **Verified screenshots (13 PNGs in `artifacts/`):** `preview-overview.png`, `preview-ampera.png`, `preview-masjid-lrt.png`, `preview-pasar16.png`, `preview-bkb.png`, `preview-walikota-ki.png`, `preview-kapitan.png`, `preview-jakabaring.png`, `preview-musi-iv.png`, `preview-kemaro.png`, `preview-sunset.png`, `preview-jakabaring-night.png`, and `preview-night.png` — all visually inspected.
 
-### 2.3 Batasan Sengaja pada Prototipe
+### 2.3 Deliberate Prototype Limitations
 
-1. **Skala Diorama Terkompresi:** Orientasi relatif dipertahankan (*Seberang Ilir* di utara `-Z`, *Seberang Ulu* di selatan `+Z`, aliran *Sungai Musi* dari barat `-X` ke timur `+X`), tetapi jarak memanjang dikompresi (di lapangan, Benteng Kuto Besak berada ~0,5–0,7 km di barat Ampera sementara Pulau Kemaro ~6 km di timur hilir). Tanpa kompresi, Pulau Kemaro dan Kuto Besak akan tampak terlalu kecil pada tampilan ikhtisar (*overview*).
-2. **Geometri Prosedural, Bukan Data Survei:** Seluruh objek dibentuk dari primitif dan shader Three.js. Tidak ada impor model `.glb/.gltf` hasil fotogrametri ataupun model BIM teknik sipil.
-3. **Tidak Ada Integrasi GIS & Telemetri Langsung:** Tidak terhubung ke DEMNAS, OpenStreetMap API, Cesium/Google 3D Tiles, maupun posisi GPS kapal/LRT waktu-nyata. Pergerakan perahu, tongkang, mobil, dan kereta LRT bersifat sintetis deterministik.
+1. **Compressed Diorama Scale:** Relative orientation is preserved (*Seberang Ilir* to the north at `-Z`, *Seberang Ulu* to the south at `+Z`, the *Musi River* flowing from west `-X` to east `+X`), but longitudinal distances are compressed (on the ground, Kuto Besak Fort is ~0.5–0.7 km west of Ampera, while Kemaro Island is ~6 km downstream to the east). Without compression, Kemaro Island and Kuto Besak would look too small in the *overview*.
+2. **Procedural Geometry, Not Survey Data:** All objects are built from Three.js primitives and shaders. There are no imported photogrammetry `.glb/.gltf` models or civil-engineering BIM models.
+3. **No GIS Integration or Live Telemetry (in Diorama mode):** Not connected to DEMNAS, the OpenStreetMap API, Cesium/Google 3D Tiles, or real-time GPS positions of boats/LRT. Movement of boats, barges, cars, and LRT trains is synthetic and deterministic.
 
 ---
 
-## 3. Topik 1 — Analisis Kelayakan & Batas Cakupan (*Feasibility & Extent*)
+## 3. Topic 1 — Feasibility & Extent Analysis
 
-Pertanyaan *"apakah layak membangun visualisasi 3D Kota Palembang?"* tidak bisa dijawab dengan ya/tidak tunggal karena kelayakan sangat ditentukan oleh **tingkat fidelitas (fidelity tier)** dan **tujuan penggunaannya**.
+The question *"is it feasible to build a 3D visualization of Palembang?"* cannot be answered with a single yes/no, because feasibility depends heavily on the **fidelity tier** and the **intended use**.
 
-### 3.1 Perbandingan Tiga Tingkatan Implementasi
+### 3.1 Comparison of Three Implementation Tiers
 
-| Dimensi Evaluasi | Tier 1: *Stylized Procedural Prototype* (Prototipe Saat Ini) | Tier 2: *Data-Driven GIS City Model* (OSM + DEMNAS) | Tier 3: *Photorealistic Digital Twin* (3D Tiles / UAV / BIM) |
+| Evaluation Dimension | Tier 1: *Stylized Procedural Prototype* (Current Prototype) | Tier 2: *Data-Driven GIS City Model* (OSM + DEMNAS) | Tier 3: *Photorealistic Digital Twin* (3D Tiles / UAV / BIM) |
 |---|---|---|---|
-| **Cakupan Spasial** | Koridor inti Sungai Musi (skala terkompresi) | Seluruh area perkotaan Palembang (~400 km²) pada koordinat nyata (WGS84/UTM 48S) | Koridor strategis (Musi, Jakabaring, pelabuhan) atau blok prioritas beresolusi sentimeter |
-| **Sumber Data Utama** | Pengetahuan arsitektural + primitif Three.js | Footprint bangunan OSM/RBI + DEMNAS BIG (`0,27 arcsecond` / ~8 m) + model custom `.glb` untuk tengara utama | Google Photorealistic 3D Tiles / Cesium, survei fotogrametri drone UAV, LiDAR udara, atau model BIM/IFC |
-| **Kelayakan Teknis & Data di Palembang** | **Tinggi.** Mandiri, 100% offline-safe, nol ketergantungan lisensi data eksternal | **Menengah.** DEMNAS tersedia gratis (BIG), tetapi tag ketinggian (`building:levels`/`height`) OSM di Palembang masih jarang/tidak merata | **Rendah–Bersyarat.** Cakupan 3D Tiles komersial di Indonesia masih terfokus di metro Tier-1/Tier-2 dan bersifat parsial/belum terverifikasi merata di Palembang; akuisisi UAV/LiDAR mahal |
-| **Beban GPU/VRAM & Jaringan** | Sangat ringan (~41 ribu segitiga, <160 kB JS gzip); lancar di laptop maupun ponsel | Menengah–berat; memerlukan *spatial tiling* (`3D Tiles` / instancing) agar tidak memacetkan VRAM browser | Berat (streaming tekstur ratusan MB–GB per sesi, butuh GPU diskrit atau koneksi pita lebar stabil) |
-| **Biaya Operasional & Lisensi** | Nol biaya lisensi/API (hosting statis) | Rendah–menengah (server tile mandiri / Mapbox / Cesium Ion; biaya pemodelan aset tengara manual) | Tinggi (kuota API komersial, penyimpanan *point-cloud*/mesh, pembaruan survei drone berkala) |
-| **Kecocokan Kasus Guna** | Eksplorasi awal, presentasi konsep, peta wisata interaktif, edukasi | Perencanaan tata kota makro, simulasi banjir/pasang Sungai Musi, visualisasi zonasi | Manajemen aset infrastruktur presisi, simulasi rekayasa sipil, kembaran digital operasional |
+| **Spatial Extent** | Core Musi River corridor (compressed scale) | Entire Palembang urban area (~400 km²) in real coordinates (WGS84/UTM 48S) | Strategic corridors (Musi, Jakabaring, port) or priority blocks at centimeter resolution |
+| **Primary Data Sources** | Architectural knowledge + Three.js primitives | OSM/RBI building footprints + BIG DEMNAS (`0.27 arcsecond` / ~8 m) + custom `.glb` models for key landmarks | Google Photorealistic 3D Tiles / Cesium, UAV drone photogrammetry surveys, aerial LiDAR, or BIM/IFC models |
+| **Technical & Data Feasibility in Palembang** | **High.** Self-contained, 100% offline-safe, zero dependency on external data licenses | **Medium.** DEMNAS is freely available (BIG), but OSM height tags (`building:levels`/`height`) in Palembang are still sparse/uneven | **Low–Conditional.** Commercial 3D Tiles coverage in Indonesia is concentrated in Tier-1/Tier-2 metros and is partial/not uniformly verified for Palembang; UAV/LiDAR acquisition is expensive |
+| **GPU/VRAM & Network Load** | Very light (~41K triangles, <160 kB JS gzip); smooth on laptops and phones | Medium–heavy; requires *spatial tiling* (`3D Tiles` / instancing) to avoid choking browser VRAM | Heavy (hundreds of MB–GB of texture streaming per session; needs a discrete GPU or stable broadband) |
+| **Operating & Licensing Cost** | Zero license/API cost (static hosting) | Low–medium (self-hosted tile server / Mapbox / Cesium Ion; manual landmark asset modeling cost) | High (commercial API quotas, *point-cloud*/mesh storage, periodic drone survey updates) |
+| **Use-Case Fit** | Early exploration, concept presentations, interactive tourism maps, education | Macro urban planning, Musi River flood/tide simulation, zoning visualization | Precision infrastructure asset management, civil engineering simulation, operational digital twin |
 
-### 3.2 Celah Data Spesifik Kota Palembang (Realitas Lapangan)
+### 3.2 Palembang-Specific Data Gaps (Ground Reality)
 
-1. **Resolusi DEMNAS (~8 m) untuk Topografi Datar Rawa-Sungai:** Palembang berada di dataran rendah pasang-surut Sungai Musi dengan variasi elevasi lokal yang halus. DEMNAS (resolusi horizontal ~8 m, datum vertikal EGM2008) cukup baik untuk kontur kota makro, tetapi **terlalu kasar** untuk memodelkan dinding turap tepi sungai, jalan pendekat jembatan layang LRT, atau parit drainase mikro tanpa survei batimetri/LiDAR tambahan.
-2. **Ketimpangan Atribut Bangunan di OpenStreetMap:** Di wilayah pusat (Ilir Timur/Ilir Barat), tapak (*footprint*) bangunan cukup banyak tersedia, namun mayoritas tidak memiliki atribut `height` atau `building:levels`. Ekstrusi naif dengan tinggi acak memang menghasilkan kepadatan visual, tetapi gagal merepresentasikan bangunan bersejarah (*Rumah Limas*, ruko Pasar 16 Ilir, gudang tepian Ulu) secara meyakinkan.
-3. **Ketidakpastian Cakupan 3D Tiles Komersial:** Mengasumsikan ketersediaan penuh Google Photorealistic 3D Tiles di Palembang berisiko tinggi; cakupan resmi di Indonesia lebih dahulu matang di kota metropolitan utama seperti Jakarta, Bandung, Surabaya, dan Denpasar. Sebelum berkomitmen pada arsitektur Tier 3, tim wajib melakukan *live tile probe* pada kotak pembatas (*bounding box*) Palembang terlebih dahulu.
+1. **DEMNAS Resolution (~8 m) for Flat Swamp-River Topography:** Palembang sits on the tidal lowlands of the Musi River with subtle local elevation changes. DEMNAS (~8 m horizontal resolution, EGM2008 vertical datum) is adequate for macro city contours but **too coarse** to model riverbank retaining walls, LRT viaduct approaches, or micro drainage channels without additional bathymetry/LiDAR surveys.
+2. **Uneven Building Attributes in OpenStreetMap:** In the central districts (Ilir Timur/Ilir Barat), building footprints are fairly well mapped, but most lack `height` or `building:levels` attributes. Naive extrusion with random heights does create visual density, but fails to convincingly represent historic buildings (*Rumah Limas*, Pasar 16 Ilir shophouses, Ulu riverside warehouses).
+3. **Uncertain Commercial 3D Tiles Coverage:** Assuming full Google Photorealistic 3D Tiles availability in Palembang is high-risk; official coverage in Indonesia matured first in major metros such as Jakarta, Bandung, Surabaya, and Denpasar. Before committing to a Tier 3 architecture, the team must run a *live tile probe* over Palembang's bounding box first.
 
-**Kesimpulan Kelayakan:** Untuk fase *early exploration*, **Tier 1 (prototipe stylized)** adalah titik awal paling tepat guna. Jika proyek berlanjut ke tahap analitik tata ruang, peningkatan paling rasional adalah ke **Tier 2 hibrida** (menggunakan *3D Tiles* hasil ekstrusi OSM + DEMNAS untuk konteks massa kota, sambil mempertahankan aset 3D kustom bergaya/detail untuk Jembatan Ampera, Benteng Kuto Besak, Pulau Kemaro, Masjid Agung, dan jalur LRT).
+**Feasibility Conclusion:** For the *early exploration* phase, **Tier 1 (stylized prototype)** is the most fit-for-purpose starting point. If the project moves on to spatial analytics, the most rational upgrade is a **hybrid Tier 2** (using *3D Tiles* from OSM + DEMNAS extrusion for city massing, while keeping custom stylized/detailed 3D assets for Ampera Bridge, Kuto Besak Fort, Kemaro Island, the Great Mosque, and the LRT line).
 
 ---
 
-## 4. Topik 2 — Fitur Tepat Guna & Perbandingan Pola Eksekusi
+## 4. Topic 2 — Fit-for-Purpose Features & Execution Pattern Comparison
 
-### 4.1 Peta Jalan Fitur Berdasarkan Tahap Kematangan
+### 4.1 Feature Roadmap by Maturity Stage
 
-Agar tidak terjebak membangun fitur yang terlihat canggih namun minim nilai guna, fitur sebaiknya dipilah ke dalam tiga gelombang:
+To avoid building features that look impressive but deliver little value, features should be split into three waves:
 
-- **Gelombang 1 — MVP Eksplorasi Awal (Sudah tercapai di prototipe ini):**
-  - Koridor Sungai Musi + tengara ikonik mudah dikenali (*Ampera, Kuto Besak, Pulau Kemaro, Masjid Agung, Monpera, LRT, Rumah Limas*).
-  - Navigasi orbit/pan/zoom terkurung batas aman + preset kamera terkurasi + sakelar waktu hari (*Siang/Senja/Malam*) + kartu informasi ringkas yang jujur soal keterbatasan skala.
-- **Gelombang 2 — Eksplorasi Spasial Berbasis Data (Jika berlanjut ke Tier 2):**
-  - Koordinat nyata (UTM 48S) dengan skala 1:1 dan *level-of-detail* (LOD) atau *3D Tiles* agar 6 km menuju Pulau Kemaro tetap lancar.
-  - *Layer toggle* tematik: batas kecamatan Seberang Ilir/Ulu, rute transportasi sungai & koridor LRT Sumsel, serta simulasi elevasi genangan/pasang Sungai Musi.
-  - Pencarian tengara/alamat dan *deep-link URL* kamera (berbagi sudut pandang tertentu).
-- **Gelombang 3 — Operasional & Kembaran Digital (Hanya jika ada sponsor data institusional):**
-  - Integrasi data sensor/API langsung (tinggi muka air Musi, posisi kapal/AIS, posisi kereta LRT) dan dukungan anotasi kolaboratif/analisis bayangan matahari untuk kajian perizinan bangunan.
+- **Wave 1 — Early Exploration MVP (Already achieved in this prototype):**
+  - Musi River corridor + instantly recognizable iconic landmarks (*Ampera, Kuto Besak, Kemaro Island, Great Mosque, Monpera, LRT, Rumah Limas*).
+  - Orbit/pan/zoom navigation within safe bounds + curated camera presets + time-of-day switch (*Day/Sunset/Night*) + a concise info card that is honest about scale limitations.
+- **Wave 2 — Data-Driven Spatial Exploration (If moving to Tier 2):**
+  - Real coordinates (UTM 48S) at 1:1 scale with *level-of-detail* (LOD) or *3D Tiles* so the 6 km to Kemaro Island stays smooth.
+  - Thematic *layer toggles*: Seberang Ilir/Ulu district boundaries, river transport routes & the South Sumatra LRT corridor, and Musi River flood/tide elevation simulation.
+  - Landmark/address search and camera *deep-link URLs* (sharing a specific viewpoint).
+- **Wave 3 — Operations & Digital Twin (Only with an institutional data sponsor):**
+  - Live sensor/API data integration (Musi water level, vessel/AIS positions, LRT train positions) plus collaborative annotation and sun-shadow analysis for building-permit reviews.
 
-### 4.2 Perbandingan Pola Eksekusi: Multi-Agent Orchestrator vs Alternatif
+### 4.2 Execution Pattern Comparison: Multi-Agent Orchestrator vs Alternatives
 
-Pemilihan pola eksekusi menentukan kecepatan, biaya token, dan risiko kegagalan rekayasa:
+The choice of execution pattern determines speed, token cost, and engineering failure risk:
 
-| Pola Eksekusi | Mekanisme Kerja | Kelebihan | Kelemahan & Mode Kegagalan (*Failure Modes*) | Paling Cocok Untuk |
+| Execution Pattern | How It Works | Strengths | Weaknesses & Failure Modes | Best Suited For |
 |---|---|---|---|---|
-| **1. Orchestrator Multi-Agent** *(Explorer → Planner → Worker → Verifier/Challenger)* | Orkestrator memecah tugas, menugaskan riset paralel, memberi kontrak antarmuka (`PROJECT.md`), lalu memverifikasi dengan agen terpisah | Pemisahan tanggung jawab jelas; verifikasi independen efektif menangkap ketidakkonsistenan kode vs laporan | **Overhead koordinasi & amplifikasi token tinggi** (dokumen handoff berulang); risiko *context drift* bila kontrak antarmuka tidak dikunci; tidak ekonomis untuk perubahan UI kecil | Proyek multi-jalur (mis. kode 3D + skrip QA + laporan analitis sinkron) atau tim/basis kode menengah-besar dengan standar audit ketat |
-| **2. Single-Agent Iteratif** *(1 agen coding + loop build/screenshot)* | Satu agen merancang, menulis kode, menjalankan `vite build` + `verify.mjs`, melihat hasil PNG, lalu memoles | Konteks tetap utuh dalam satu memori kerja; latensi antar-langkah rendah; biaya token paling efisien untuk repo <25 berkas | Berisiko *blind spot* saat mengaudit karya sendiri (*confirmation bias*) kecuali dipaksa menjalankan skrip uji dan menginspeksi screenshot secara eksplisit | **Prototipe awal Tier 1 seperti repo ini**, eksperimen shader/geometri cepat, dan iterasi antarmuka |
-| **3. Deterministic Pipeline / DAG** *(Python/GDAL/Blender + `3d-tiles-tools` → Static Viewer)* | Pemrosesan data spasial dijalankan oleh skrip deterministik berbasis konfigurasi; AI hanya dipakai menulis/merawat pipeline | Reproduksibilitas 100%, hemat token saat memproses jutaan poligon OSM/DEMNAS (agen tidak pernah membaca data mentah ke dalam *prompt*) | Kurang fleksibel untuk keputusan estetika/artistik tanpa keterlibatan manusia atau alat preview visual | **Tier 2 & Tier 3 (GIS skala kota)** di mana volume data geospasial tidak mungkin dimuat ke jendela konteks LLM |
-| **4. Human-in-the-Loop Co-pilot** *(Desainer 3D / GIS Engineer + AI Assistant)* | Manusia memegang keputusan komposisi visual & pemodelan aset hero di Blender/QGIS; AI membantu kode Three.js, shader, dan HUD | Kualitas artistik dan akurasi budaya Palembang tertinggi (proporsi ukiran *Rumah Limas*, ornamen Pagoda) | Bergantung pada ketersediaan tenaga ahli 3D/GIS; kecepatan awal mengikuti jadwal manusia | Aset hero berfidelitas tinggi untuk pameran publik, museum digital, atau aplikasi produksi resmi pemerintah daerah |
+| **1. Multi-Agent Orchestrator** *(Explorer → Planner → Worker → Verifier/Challenger)* | The orchestrator decomposes tasks, assigns parallel research, defines interface contracts (`PROJECT.md`), then verifies with separate agents | Clear separation of responsibilities; independent verification effectively catches code-vs-report inconsistencies | **High coordination overhead & token amplification** (repeated handoff documents); risk of *context drift* if interface contracts aren't locked; uneconomical for small UI changes | Multi-track projects (e.g., 3D code + QA scripts + synchronized analytical report) or medium-to-large teams/codebases with strict audit standards |
+| **2. Iterative Single Agent** *(1 coding agent + build/screenshot loop)* | One agent designs, writes code, runs `vite build` + `verify.mjs`, looks at the PNG output, then polishes | Context stays intact in a single working memory; low step-to-step latency; most token-efficient for repos with <25 files | Risk of *blind spots* when auditing its own work (*confirmation bias*) unless forced to run test scripts and explicitly inspect screenshots | **Early Tier 1 prototypes like this repo**, fast shader/geometry experiments, and UI iteration |
+| **3. Deterministic Pipeline / DAG** *(Python/GDAL/Blender + `3d-tiles-tools` → Static Viewer)* | Spatial data processing runs as deterministic, config-driven scripts; AI is used only to write/maintain the pipeline | 100% reproducibility; token-efficient when processing millions of OSM/DEMNAS polygons (the agent never reads raw data into the *prompt*) | Less flexible for aesthetic/artistic decisions without human involvement or visual preview tools | **Tier 2 & Tier 3 (city-scale GIS)**, where geospatial data volume cannot fit into an LLM context window |
+| **4. Human-in-the-Loop Co-pilot** *(3D Designer / GIS Engineer + AI Assistant)* | Humans own visual composition decisions & hero asset modeling in Blender/QGIS; AI assists with Three.js code, shaders, and HUD | Highest artistic quality and cultural accuracy for Palembang (*Rumah Limas* carving proportions, Pagoda ornaments) | Depends on availability of 3D/GIS experts; initial speed follows human schedules | High-fidelity hero assets for public exhibitions, digital museums, or official local-government production apps |
 
-**Temuan Kritis dari Eksekusi Proyek Ini:** Pada prototipe ~15–20 berkas, nilai tambah terbesar bukan berasal dari jumlah agen yang banyak, melainkan dari **adanya loop verifikasi visual tertutup (headless WebGL screenshot → inspeksi gambar oleh model multimodal → perbaikan)**. Tanpa inspeksi gambar aktual, agen hanya menebak tampilan 3D dari koordinat angka: pada proyek ini, cacat seperti kartu informasi yang menutupi Pulau Kemaro, atap tumpang-tindih di halaman Benteng Kuto Besak, dan garis pantai yang terpotong baru terdeteksi setelah melihat tangkapan layar PNG, bukan dari keluaran `vite build`.
+**Critical Finding from This Project's Execution:** For a ~15–20 file prototype, the biggest value did not come from having many agents, but from **a closed visual verification loop (headless WebGL screenshot → image inspection by a multimodal model → fix)**. Without inspecting actual images, an agent only guesses what the 3D scene looks like from numeric coordinates: in this project, defects such as the info card covering Kemaro Island, overlapping roofs in the Kuto Besak courtyard, and a clipped shoreline were only detected after viewing PNG screenshots, not from `vite build` output.
 
 ---
 
-## 5. Topik 3 — Estimasi Waktu Pengembangan & Penggunaan Token
+## 5. Topic 3 — Development Time & Token Usage Estimates
 
-Estimasi di bawah memisahkan pengembangan **Tier 1 (Prototipe Stylized, selaras dengan realitas build proyek ini)**, **Tier 2 (GIS Skala Kota)**, dan **Tier 3 (Digital Twin)**.
+The estimates below separate development of **Tier 1 (Stylized Prototype, aligned with this project's build reality)**, **Tier 2 (City-Scale GIS)**, and **Tier 3 (Digital Twin)**.
 
-### 5.1 Mengapa Konsumsi Token Sering Lebih Besar dari Dugaan?
+### 5.1 Why Is Token Consumption Often Higher Than Expected?
 
-Kesalahan umum dalam menganggarkan proyek berbasis AI adalah hanya menghitung token output kode (`~15–30 ribu` token untuk ~2.000 baris kode). Dalam praktik *agentic workflow*, penggerak utama total token adalah:
-1. **Amplifikasi Konteks Input (*Input Context Amplification*):** Setiap giliran alat (*tool call*) mengirim ulang *system prompt*, riwayat percakapan, serta berkas yang dibaca. Pada sesi 30–60 giliran, token input kumulatif mencapai **10×–30×** token output.
-2. **Keluaran Alat & Log (*Tool Outputs*):** Hasil `find`, `npm install`, log error build, dan pembacaan ulang berkas besar masuk ke konteks input.
-3. **Token Visi Multimodal (*Vision Tokens*):** Menginspeksi 6–7 screenshot PNG beresolusi `1280×760` dalam beberapa putaran perbaikan menambah beban token input gambar yang signifikan, namun mutlak diperlukan untuk mencegah *visual hallucination*.
-4. **Siklus Coba-Ulang (*Retry & Polish Loops*):** Memperbaiki posisi kamera, pencahayaan malam, atau benturan *bounding box* menambah 2–4 iterasi penuh.
+A common mistake when budgeting AI-driven projects is counting only code output tokens (`~15–30K` tokens for ~2,000 lines of code). In an *agentic workflow*, the main drivers of total tokens are:
+1. **Input Context Amplification:** Every *tool call* resends the *system prompt*, conversation history, and files that were read. Over a 30–60 turn session, cumulative input tokens reach **10×–30×** the output tokens.
+2. **Tool Outputs & Logs:** Results of `find`, `npm install`, build error logs, and re-reads of large files all land in the input context.
+3. **Multimodal Vision Tokens:** Inspecting 6–7 PNG screenshots at `1280×760` over several fix rounds adds a significant image-input token load, but is absolutely necessary to prevent *visual hallucination*.
+4. **Retry & Polish Loops:** Fixing camera positions, night lighting, or *bounding box* collisions adds 2–4 full iterations.
 
-### 5.2 Tabel Estimasi Waktu & Token per Fase
+### 5.2 Time & Token Estimates per Phase
 
-> **Asumsi Dasar:** 1 fase *agentic* Tier 1 mengasumsikan *prompt caching* aktif atau sesi terstruktur; angka mencerminkan **total token (Input + Output + Vision/Tool)** untuk satu siklus proyek lengkap hingga lolos QA.
+> **Baseline Assumption:** One Tier 1 *agentic* phase assumes active *prompt caching* or a structured session; figures reflect **total tokens (Input + Output + Vision/Tool)** for one complete project cycle through QA.
 
-| Fase Proyek | Tier 1: Prototipe *Stylized* (AI-Assisted / Agentic) | Tier 2: GIS Skala Kota (DAG + AI Co-pilot) | Tier 3: Digital Twin (UAV/3D Tiles + Tim Ahli) | Sumber Utama Token (Jika Menggunakan Agen) |
+| Project Phase | Tier 1: *Stylized* Prototype (AI-Assisted / Agentic) | Tier 2: City-Scale GIS (DAG + AI Co-pilot) | Tier 3: Digital Twin (UAV/3D Tiles + Expert Team) | Main Token Sources (When Using Agents) |
 |---|---|---|---|---|
-| **1. Eksplorasi Data, Arsitektur & Kontrak Spasial** | **1–2 jam** *(~60K–180K token)* | **3–5 hari** *(~250K–700K token)* | **1–2 minggu** *(~400K–1,2M token)* | Riset referensi geografis, pengecekan toolchain lokal, perancangan sistem koordinat |
-| **2. Implementasi Inti 3D / Pipeline Geospasial** | **2–5 jam** *(~150K–450K token)* | **1,5–3 minggu** *(~800K–2,2M token)* | **3–6 minggu** *(~1,5M–4M token)* | Sintesis kode Three.js/shader, iterasi modul landmark, skrip ETL GDAL/3D Tiles |
-| **3. Integrasi Aset Detail / Data Tematik & HUD** | **1–2 jam** *(~80K–220K token)* | **1–2 minggu** *(~500K–1,4M token)* | **2–4 minggu** *(~1M–2,5M token)* | Antarmuka HUD, sinkronisasi koordinat antar-lapisan, optimasi *instancing*/LOD |
-| **4. QA Teknis, Verifikasi Render Headless & Pemolesan Visual** | **1–3 jam** *(~120K–400K token)* | **3–5 hari** *(~400K–1,1M token)* | **1–2 minggu** *(~800K–2M token)* | Pembuatan `verify.mjs`, inspeksi screenshot multimodal (PNG), perbaikan framing & pencahayaan |
-| **5. Dokumentasi, Uji Konsistensi & Serah Terima** | **1–2 jam** *(~70K–180K token)* | **2–3 hari** *(~200K–500K token)* | **3–5 hari** *(~300K–800K token)* | Penulisan README, laporan teknis, audit silang 1:1 antara dokumen dan kode |
-| **Total Estimasi Realistis** | **6–14 jam kerja** *(~480K–1,43M total token; single-agent hemat di batas bawah, multi-agent di batas atas)* | **3–7 minggu** *(~2,15M–5,9M total token)* | **7–14 minggu** *(~4,0M–10,5M total token)* | **75–90% adalah token input/konteks & visi**, hanya **10–25%** token generasi output |
+| **1. Data Exploration, Architecture & Spatial Contracts** | **1–2 hours** *(~60K–180K tokens)* | **3–5 days** *(~250K–700K tokens)* | **1–2 weeks** *(~400K–1.2M tokens)* | Geographic reference research, local toolchain checks, coordinate system design |
+| **2. Core 3D Implementation / Geospatial Pipeline** | **2–5 hours** *(~150K–450K tokens)* | **1.5–3 weeks** *(~800K–2.2M tokens)* | **3–6 weeks** *(~1.5M–4M tokens)* | Three.js/shader code synthesis, landmark module iteration, GDAL/3D Tiles ETL scripts |
+| **3. Detailed Asset / Thematic Data & HUD Integration** | **1–2 hours** *(~80K–220K tokens)* | **1–2 weeks** *(~500K–1.4M tokens)* | **2–4 weeks** *(~1M–2.5M tokens)* | HUD interface, cross-layer coordinate sync, *instancing*/LOD optimization |
+| **4. Technical QA, Headless Render Verification & Visual Polish** | **1–3 hours** *(~120K–400K tokens)* | **3–5 days** *(~400K–1.1M tokens)* | **1–2 weeks** *(~800K–2M tokens)* | Writing `verify.mjs`, multimodal screenshot (PNG) inspection, framing & lighting fixes |
+| **5. Documentation, Consistency Testing & Handover** | **1–2 hours** *(~70K–180K tokens)* | **2–3 days** *(~200K–500K tokens)* | **3–5 days** *(~300K–800K tokens)* | Writing the README, technical report, 1:1 cross-audit between docs and code |
+| **Realistic Total Estimate** | **6–14 working hours** *(~480K–1.43M total tokens; efficient single agent at the lower bound, multi-agent at the upper bound)* | **3–7 weeks** *(~2.15M–5.9M total tokens)* | **7–14 weeks** *(~4.0M–10.5M total tokens)* | **75–90% are input/context & vision tokens**, only **10–25%** are output generation tokens |
 
-*Catatan Kalibrasi:* Tanpa agen AI (pengerjaan manual penuh oleh 1 developer Three.js menengah), Tier 1 umumnya memakan **2–4 hari kerja**, sehingga alur kerja berbantuan AI mempercepat fase prototipe awal sekitar **3×–5×**, asalkan lingkungan verifikasi (Node, browser WebGL headless) sudah teruji sejak menit pertama.
+*Calibration Note:* Without AI agents (fully manual work by one mid-level Three.js developer), Tier 1 typically takes **2–4 working days**, so an AI-assisted workflow speeds up the early prototype phase by roughly **3×–5×**, provided the verification environment (Node, headless WebGL browser) is proven working from the very first minute.
 
 ---
 
-## 6. Topik 4 — Rekomendasi Model AI per Fase Proyek
+## 6. Topic 4 — AI Model Recommendations per Project Phase
 
-Pemilihan model sebaiknya memadukan **kapabilitas spesifik fase** (penalaran spasial, akurasi sintesis kode, penglihatan multimodal, penulisan teknis bahasa Indonesia) dengan disiplin biaya dan latensi.
+Model selection should combine **phase-specific capabilities** (spatial reasoning, code synthesis accuracy, multimodal vision, Indonesian-language technical writing) with cost and latency discipline.
 
-| Fase Proyek | Kebutuhan Kognitif Utama | Rekomendasi Kelas Model Utama | Alternatif Hemat / *Open-Weight* | Trade-off & Catatan Praktis |
+| Project Phase | Primary Cognitive Need | Recommended Primary Model Class | Budget / *Open-Weight* Alternative | Trade-offs & Practical Notes |
 |---|---|---|---|---|
-| **Arsitektur, Pemetaan Koordinat & Debugging Spasial** | Penalaran geometri 3D, konsistensi kontrak antar-modul, analisis *edge case* | **Model Penalaran Frontier** *(mis. kelas Claude Opus/Sonnet generasi terbaru, OpenAI o3 / GPT-5 reasoning, Gemini Pro reasoning)* | **DeepSeek-R1 / Qwen3-Coder-Thinking** (via API atau self-hosted) | Biaya per token lebih mahal, tetapi jauh lebih murah daripada 5× siklus perbaikan akibat sumbu koordinat terbalik (`+Z` vs `-Z`) atau jembatan menabrak pier |
-| **Implementasi Modul Three.js, Shader GLSL & Skrip ETL GIS** | Penulisan kode modular cepat, API Three.js modern, Python/GDAL/Bash | **Model Coding Kecepatan Tinggi** *(mis. Claude Sonnet, GPT-4.1/GPT-5-codex, Gemini Flash/Pro)* | **Qwen2.5/3-Coder-32B+** atau **Codestral** | Model kelas menengah-atas unggul untuk throughput harian; hindari model yang terlalu kecil untuk GLSL karena kesalahan sintaks uniform/varying sulit dideteksi statis |
-| **QA Visual & Inspeksi Screenshot Render** | Pemahaman visual adegan 3D (*multimodal vision*), deteksi objek mengambang, evaluasi kontras UI & *overlap* label | **Model Multimodal Vision Akurat** *(mis. Claude Sonnet/Opus Vision, GPT-4o / GPT-5 Vision, Gemini Pro Vision)* | **Qwen2.5-VL-72B** | **Wajib multimodal.** Jangan mendelegasikan QA visual ke model *text-only* karena ia hanya bisa membaca metrik DOM/triangles dan tidak akan melihat UI yang menutupi Pulau Kemaro |
-| **Penulisan Laporan Analitis & Dokumentasi Bahasa Indonesia** | Pengolahan bukti faktual lintas berkas, konsistensi teknis, tata bahasa Indonesia baku namun natural | **Model Long-Context dengan Kemampuan Bahasa Indonesia Kuat** *(mis. Claude Sonnet/Opus, Gemini Pro, GPT-4o/5)* | **Llama-3.3-70B / Qwen3** (perlu penyuntingan gaya istilah baku lebih teliti) | Prioritaskan model dengan jendela konteks besar (`≥128K`) agar seluruh kode sumber, log verifikasi, dan spesifikasi dapat diaudit sekaligus tanpa pemotongan |
+| **Architecture, Coordinate Mapping & Spatial Debugging** | 3D geometric reasoning, cross-module contract consistency, *edge case* analysis | **Frontier Reasoning Models** *(e.g., latest-generation Claude Opus/Sonnet, OpenAI o3 / GPT-5 reasoning, Gemini Pro reasoning)* | **DeepSeek-R1 / Qwen3-Coder-Thinking** (via API or self-hosted) | Higher cost per token, but far cheaper than 5× fix cycles caused by inverted coordinate axes (`+Z` vs `-Z`) or bridges clipping through piers |
+| **Three.js Modules, GLSL Shaders & GIS ETL Scripts** | Fast modular code writing, modern Three.js API, Python/GDAL/Bash | **High-Speed Coding Models** *(e.g., Claude Sonnet, GPT-4.1/GPT-5-codex, Gemini Flash/Pro)* | **Qwen2.5/3-Coder-32B+** or **Codestral** | Upper-mid-tier models excel at daily throughput; avoid models that are too small for GLSL, since uniform/varying syntax errors are hard to catch statically |
+| **Visual QA & Render Screenshot Inspection** | Visual understanding of 3D scenes (*multimodal vision*), floating-object detection, UI contrast & label *overlap* evaluation | **Accurate Multimodal Vision Models** *(e.g., Claude Sonnet/Opus Vision, GPT-4o / GPT-5 Vision, Gemini Pro Vision)* | **Qwen2.5-VL-72B** | **Multimodal is mandatory.** Never delegate visual QA to a *text-only* model — it can only read DOM/triangle metrics and will never see UI covering Kemaro Island |
+| **Analytical Reports & Indonesian-Language Documentation** | Processing factual evidence across files, technical consistency, formal yet natural Indonesian grammar | **Long-Context Models with Strong Indonesian Capability** *(e.g., Claude Sonnet/Opus, Gemini Pro, GPT-4o/5)* | **Llama-3.3-70B / Qwen3** (needs more careful editing for formal terminology) | Prioritize models with a large context window (`≥128K`) so all source code, verification logs, and specs can be audited at once without truncation |
 
-### Catatan Volatilitas Harga & Strategi Anggaran
+### Price Volatility & Budget Strategy
 
-Harga per 1 juta token (*unit pricing*) model AI komersial berubah secara cepat setiap kuartal seiring peluncuran model baru dan diskon *prompt caching*. Oleh karena itu, dokumen ini memisahkan **volume token** (Bagian 5) dari tarif spesifik vendor:
-- **Gunakan rasio anggaran:** Sebagai patokan komparatif lintas generasi, model *frontier reasoning* umumnya **3×–10× lebih mahal per token** daripada model *fast/flash* dan **10×–30× lebih mahal** daripada model *open-weight* terkelola.
-- **Aktifkan Prompt Caching & Pemisahan Peran:** Mengirim berkas proyek berulang kali dengan *cache* aktif dapat memangkas biaya token input hingga **50–90%**, sehingga model berpenalaran kuat tetap terjangkau untuk fase desain dan audit akhir.
+Per-million-token *unit pricing* for commercial AI models changes quickly every quarter as new models launch and *prompt caching* discounts evolve. This document therefore separates **token volume** (Section 5) from vendor-specific rates:
+- **Use budget ratios:** As a cross-generation comparative benchmark, *frontier reasoning* models are typically **3×–10× more expensive per token** than *fast/flash* models and **10×–30× more expensive** than managed *open-weight* models.
+- **Enable Prompt Caching & Role Separation:** Resending project files repeatedly with caching enabled can cut input token costs by **50–90%**, keeping strong reasoning models affordable for the design and final audit phases.
 
 ---
 
-## 7. Stress-Testing Asumsi, Matriks Risiko & Mitigasi
+## 7. Assumption Stress-Testing, Risk Matrix & Mitigation
 
-### 7.1 Menguji Enam Asumsi Populer yang Sering Menyesatkan
+### 7.1 Testing Six Popular but Misleading Assumptions
 
-1. **Asumsi 1: *"Data terbuka Indonesia (OSM + DEMNAS) langsung siap di-render menjadi kota 3D yang akurat."***
-   - **Realitas / Bantahan:** Tidak. DEMNAS beresolusi ~8 m hanya memadai untuk kontur tanah makro dan tidak menangkap tanggul sungai atau dek jembatan. Mayoritas poligon bangunan OSM di Palembang belum memiliki tinggi lantai yang terisi konsisten, sehingga tanpa pembersihan data dan aset kustom untuk tengara ikonik, hasilnya tampak seperti kota blok acak yang tidak mencirikan Palembang.
-2. **Asumsi 2: *"Agen AI dapat menilai keberhasilan visualisasi 3D cukup dari kode sumber atau status `exit code 0`."***
-   - **Realitas / Bantahan:** Salah fatal. Kode bisa terkompilasi bersih (`0 errors`) sementara kamera menghadap ke langit kosong, dermaga melayang di atas air, atau kartu UI menutup objek utama. Pada pengembangan prototipe ini, inspeksi langsung terhadap tangkapan layar PNG terbukti mengungkap cacat tumpang-tindih atap BKB, label bertumpuk di overview, dan posisi kartu info yang menutupi Pulau Kemaro.
-3. **Asumsi 3: *"Orkestrasi multi-agen selalu lebih cepat dan lebih baik daripada satu agen."***
-   - **Realitas / Bantahan:** Hanya benar jika pekerjaan punya jalur paralel yang benar-benar independen atau butuh pemisahan auditor independen. Untuk aplikasi web 3D ukuran kecil (~15 berkas), orkestrasi berlapis menambah latensi komunikasi, menyalin konteks berulang kali, dan berisiko menyebabkan ketidakcocokan koordinat antara agen pembuat sungai dan agen pembuat jembatan kecuali keduanya mengacu pada satu fungsi batas geometris bersama (seperti `getRiverBoundsAt(x)` di proyek ini).
-4. **Asumsi 4: *"Visualisasi fotorealistik selalu lebih unggul daripada desain stylized untuk eksplorasi awal."***
-   - **Realitas / Bantahan:** Untuk tahap eksplorasi konsep dan keselarasan pemangku kepentingan, gaya *stylized* jauh lebih komunikatif: siluet merah Jembatan Ampera, bentuk benteng Kuto Besak, atap tumpang Masjid Agung, dan Pagoda Pulau Kemaro terbaca instan tanpa derau tekstur buram, ukuran unduhan puluhan megabita, atau *frame drop* pada perangkat standar.
-5. **Asumsi 5: *"Google Photorealistic 3D Tiles otomatis tersedia lengkap dan seragam di Palembang."***
-   - **Realitas / Bantahan:** Cakupan 3D Tiles di Indonesia belum merata hingga seluruh kota sekunder; mengandalkan layanan tersebut tanpa verifikasi API langsung di area koordinat Palembang menciptakan risiko ketergantungan arsitektur (*single point of failure*) di tengah proyek.
-6. **Asumsi 6: *"Biaya AI dihitung berdasarkan seberapa banyak baris kode yang ditulis agen."***
-   - **Realitas / Bantahan:** Salah. Token output kode hanyalah puncak gunung es (10–25%). Penggerak biaya sebenarnya adalah pembacaan berulang konteks kode, output terminal, loop debugging, dan analisis gambar screenshot.
+1. **Assumption 1: *"Indonesian open data (OSM + DEMNAS) is ready to render into an accurate 3D city out of the box."***
+   - **Reality / Rebuttal:** No. ~8 m DEMNAS is only adequate for macro terrain contours and does not capture river embankments or bridge decks. Most OSM building polygons in Palembang lack consistent floor-count data, so without data cleaning and custom assets for iconic landmarks, the result looks like a random block city that doesn't feel like Palembang.
+2. **Assumption 2: *"An AI agent can judge the success of a 3D visualization from the source code or an `exit code 0` alone."***
+   - **Reality / Rebuttal:** Fatally wrong. Code can compile cleanly (`0 errors`) while the camera faces an empty sky, jetties float above the water, or UI cards cover the main object. During this prototype's development, direct inspection of PNG screenshots revealed overlapping BKB roofs, stacked labels in the overview, and an info card covering Kemaro Island.
+3. **Assumption 3: *"Multi-agent orchestration is always faster and better than a single agent."***
+   - **Reality / Rebuttal:** Only true when the work has genuinely independent parallel tracks or needs a separate independent auditor. For a small 3D web app (~15 files), layered orchestration adds communication latency, copies context repeatedly, and risks coordinate mismatches between the river-building agent and the bridge-building agent unless both reference a single shared geometric bounds function (such as `getRiverBoundsAt(x)` in this project).
+4. **Assumption 4: *"Photorealistic visualization is always superior to stylized design for early exploration."***
+   - **Reality / Rebuttal:** For concept exploration and stakeholder alignment, a *stylized* look is far more communicative: the red silhouette of Ampera Bridge, the shape of Kuto Besak Fort, the Great Mosque's tiered roof, and the Kemaro Island Pagoda read instantly, without blurry texture noise, tens of megabytes of downloads, or *frame drops* on standard devices.
+5. **Assumption 5: *"Google Photorealistic 3D Tiles are automatically available, complete, and uniform across Palembang."***
+   - **Reality / Rebuttal:** 3D Tiles coverage in Indonesia does not yet extend evenly to all secondary cities; relying on the service without a live API check over Palembang's coordinates creates an architectural dependency risk (*single point of failure*) mid-project.
+6. **Assumption 6: *"AI cost is driven by how many lines of code the agent writes."***
+   - **Reality / Rebuttal:** Wrong. Code output tokens are just the tip of the iceberg (10–25%). The real cost drivers are repeated reads of code context, terminal output, debugging loops, and screenshot image analysis.
 
-### 7.2 Matriks Risiko & Strategi Mitigasi
+### 7.2 Risk Matrix & Mitigation Strategies
 
-| ID | Risiko | Kemungkinan | Dampak | Strategi Mitigasi |
+| ID | Risk | Likelihood | Impact | Mitigation Strategy |
 |---|---|---|---|---|
-| **R1** | Ketidakselarasan koordinat antar-elemen 3D (objek melayang, menabrak pier jembatan, dermaga terputus) | Tinggi | Tinggi | Gunakan sumber kebenaran geometris tunggal (mis. `getRiverBoundsAt(x)` dan `GROUND_Y` bersama) serta verifikasi tangkapan layar multi-sudut |
-| **R2** | Kegagalan konteks WebGL pada mesin pengguna atau lingkungan headless CI/sandbox | Sedang | Tinggi | Sediakan pesan fallback WebGL yang informatif (`showWebGLFallback`), hindari CDN eksternal saat runtime, dan uji CI dengan flag `--use-angle=swiftshader` |
-| **R3** | Pembengkakan ukuran bundel & *draw calls* saat menaikkan detail kota (penurunan FPS di ponsel/laptop non-GPU) | Tinggi (Tier 2+) | Sedang | Pertahankan poligon ringan pada Tier 1 (~41 ribu segitiga); terapkan `InstancedMesh`, penggabungan geometri statis, dan *3D Tiles* ber-LOD saat migrasi ke Tier 2 |
-| **R4** | Bias persepsi akibat skala terkompresi (pengguna mengira jarak Kuto Besak–Pulau Kemaro benar-benar hanya ~3× lebar sungai) | Sedang | Sedang | Cantumkan catatan skala diorama secara eksplisit di HUD antarmuka, `README.md`, dan dokumentasi proyek |
-| **R5** | Ketergantungan versi toolchain lokal & regresi pasca-perubahan dokumentasi/kode | Sedang | Sedang | Kunci prasyarat (`Node >= 20`), dokumentasikan perintah lengkap pada `README.md`, dan jalankan ulang `npm run build && npm run verify` sebelum serah terima |
+| **R1** | Coordinate misalignment between 3D elements (floating objects, clipping through bridge piers, disconnected jetties) | High | High | Use a single geometric source of truth (e.g., shared `getRiverBoundsAt(x)` and `GROUND_Y`) plus multi-angle screenshot verification |
+| **R2** | WebGL context failure on user machines or in headless CI/sandbox environments | Medium | High | Provide an informative WebGL fallback message (`showWebGLFallback`), avoid external CDNs at runtime, and test CI with the `--use-angle=swiftshader` flag |
+| **R3** | Bundle size & *draw call* bloat when increasing city detail (FPS drops on phones/non-GPU laptops) | High (Tier 2+) | Medium | Keep Tier 1 low-poly (~41K triangles); apply `InstancedMesh`, static geometry merging, and LOD-based *3D Tiles* when migrating to Tier 2 |
+| **R4** | Perception bias from compressed scale (users believing the Kuto Besak–Kemaro Island distance is really only ~3× the river width) | Medium | Medium | State the diorama scale note explicitly in the HUD, `README.md`, and project documentation |
+| **R5** | Local toolchain version dependency & regressions after doc/code changes | Medium | Medium | Pin prerequisites (`Node >= 20`), document full commands in `README.md`, and rerun `npm run build && npm run verify` before handover |
 
 ---
 
-## 8. Daftar Periksa Konsistensi & Audit Mandiri (AC3 & AC4)
+## 8. Consistency Checklist & Self-Audit (AC3 & AC4)
 
-Tabel berikut memastikan seluruh tuntutan analisis (AC3) dan sinkronisasi 1:1 dengan prototipe terverifikasi (AC4) terpenuhi tanpa penyimpangan:
+The following table confirms that all analysis requirements (AC3) and 1:1 synchronization with the verified prototype (AC4) are met without deviation:
 
-| Item Audit | Status | Bukti Terverifikasi di repositori proyek ini |
+| Audit Item | Status | Verified Evidence in This Project Repository |
 |---|---|---|
-| **Topik 1 (Kelayakan & Batas Cakupan)** | Terpenuhi | Bagian 3 mengevaluasi Tier 1 vs Tier 2 vs Tier 3, celah OSM/DEMNAS (~8 m), cakupan parsial 3D Tiles, GPU/VRAM, dan biaya |
-| **Topik 2 (Fitur & Perbandingan Pola Eksekusi)** | Terpenuhi | Bagian 4 memetakan fitur Gelombang 1–3 serta membandingkan Multi-Agent Orchestrator vs Single-Agent Iteratif vs Deterministic Pipeline/DAG vs Human-in-the-Loop |
-| **Topik 3 (Estimasi Waktu & Token)** | Terpenuhi | Bagian 5 menjabarkan waktu & rentang token 5 fase lintas 3 tier, termasuk amplifikasi konteks input & token visi |
-| **Topik 4 (Rekomendasi Model AI per Fase)** | Terpenuhi | Bagian 6 memetakan kelas model per fase beserta alternatif *open-weight* dan catatan volatilitas harga |
-| **Tantangan Asumsi & Matriks Risiko** | Terpenuhi | Bagian 7 menantang 6 asumsi umum secara kritis dan menyajikan matriks risiko `R1–R5` |
-| **Sinkronisasi Perintah & Build (AC1 & AC4)** | Terverifikasi | `npm install` (43 paket di `package-lock.json`), `npm run build` (~127–135 ms, 18 modul, `dist/`), `npm run preview`, dan `npm run verify` tercatat identik dengan `package.json` & `README.md` |
-| **Sinkronisasi Visual & Telemetri (AC2 & AC4)** | Terverifikasi | 13 tangkapan layar PNG (`artifacts/preview-*.png`), `meshCount: 1.091`, `triangles: ~242,6K`, `urbanStats` (81 ruko, 241 rumah, 978 pohon, 68 lampu, 40 mobil), `mobileBounds.fits: true` (`390×844`), `0` console/page error, serta seluruh keterbatasan skala terkompresi & geometri prosedural tercatat jujur |
+| **Topic 1 (Feasibility & Extent)** | Met | Section 3 evaluates Tier 1 vs Tier 2 vs Tier 3, OSM/DEMNAS gaps (~8 m), partial 3D Tiles coverage, GPU/VRAM, and cost |
+| **Topic 2 (Features & Execution Pattern Comparison)** | Met | Section 4 maps Wave 1–3 features and compares Multi-Agent Orchestrator vs Iterative Single Agent vs Deterministic Pipeline/DAG vs Human-in-the-Loop |
+| **Topic 3 (Time & Token Estimates)** | Met | Section 5 details time & token ranges for 5 phases across 3 tiers, including input context amplification & vision tokens |
+| **Topic 4 (AI Model Recommendations per Phase)** | Met | Section 6 maps model classes per phase with *open-weight* alternatives and price-volatility notes |
+| **Assumption Challenges & Risk Matrix** | Met | Section 7 critically challenges 6 common assumptions and presents the `R1–R5` risk matrix |
+| **Command & Build Sync (AC1 & AC4)** | Verified | `npm install` (43 packages in `package-lock.json`), `npm run build` (~127–135 ms, 18 modules, `dist/`), `npm run preview`, and `npm run verify` are recorded identically to `package.json` & `README.md` |
+| **Visual & Telemetry Sync (AC2 & AC4)** | Verified | 13 PNG screenshots (`artifacts/preview-*.png`), `meshCount: 1,091`, `triangles: ~242.6K`, `urbanStats` (81 shophouses, 241 houses, 978 trees, 68 lamps, 40 cars), `mobileBounds.fits: true` (`390×844`), `0` console/page errors, and all compressed-scale & procedural-geometry limitations honestly recorded |
