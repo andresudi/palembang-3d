@@ -1,90 +1,92 @@
-# Kota Palembang 3D — Visualisasi Diorama Interaktif
+# Kota Palembang 3D — Interactive Stylized Diorama
 
-Visualisasi 3D interaktif Kota Palembang berbasis **Three.js (`^0.187.0`)** dan **Vite (`^8.4.0`)** yang berjalan sepenuhnya secara lokal (100% prosedural, tanpa ketergantungan CDN saat runtime). Adegan menyajikan koridor Sungai Musi bersama jaringan jalan arteri, kepadatan kota berbasis `InstancedMesh`, serta 11 tengara ikonik Seberang Ilir & Seberang Ulu dalam satu diorama interaktif, dilengkapi laporan analisis kritis di [`ANALISIS_PALEMBANG_3D.md`](./ANALISIS_PALEMBANG_3D.md).
+An interactive procedural 3D visualization of **Palembang, South Sumatra, Indonesia**, built with **Three.js (`^0.187.0`)** and **Vite (`^8.4.0`)**. The entire scene runs locally with zero runtime CDN dependencies, bringing together the **Musi River** corridor, connected urban road networks, high-density `InstancedMesh` neighborhoods, and **11 iconic Palembang landmarks** across Seberang Ilir and Seberang Ulu.
 
-## Pratinjau Visual
+> A companion deep-dive engineering & feasibility report (in Indonesian) is included at [`ANALISIS_PALEMBANG_3D.md`](./ANALISIS_PALEMBANG_3D.md).
 
-### Overview — Koridor Sungai Musi (Siang & Malam)
+## Visual Showcase
 
-![Overview Kota Palembang 3D - Siang](docs/screenshots/overview-day.png)
+### Overview — Musi River Corridor (Day & Night)
 
-![Overview Kota Palembang 3D - Malam](docs/screenshots/overview-night.png)
+![Kota Palembang 3D Overview - Day](docs/screenshots/overview-day.png)
 
-### Jembatan Ampera saat Senja
+![Kota Palembang 3D Overview - Night](docs/screenshots/overview-night.png)
 
-![Jembatan Ampera saat Senja](docs/screenshots/ampera-sunset.png)
+### Ampera Bridge at Sunset
 
-### Galeri Kawasan & Tengara Ikonik
+![Ampera Bridge at Sunset](docs/screenshots/ampera-sunset.png)
 
-| Bundaran Air Mancur, Masjid Agung & Monpera | Gedung & Kawasan Pasar 16 Ilir |
+### Iconic Landmarks & Districts
+
+| Fountain Roundabout, Great Mosque & Monpera | Pasar 16 Ilir Heritage Market District |
 | :---: | :---: |
-| ![Bundaran Air Mancur & Masjid Agung](docs/screenshots/bundaran-masjid.png) | ![Pasar 16 Ilir](docs/screenshots/pasar-16-ilir.png) |
+| ![Fountain Roundabout & Great Mosque](docs/screenshots/bundaran-masjid.png) | ![Pasar 16 Ilir](docs/screenshots/pasar-16-ilir.png) |
 
-| Benteng Kuto Besak & Museum SMB II | Kantor Walikota (Menara Air) & Kambang Iwak |
+| Benteng Kuto Besak & SMB II Museum | City Hall (Water Tower) & Kambang Iwak Park |
 | :---: | :---: |
-| ![Benteng Kuto Besak](docs/screenshots/kuto-besak.png) | ![Kantor Walikota & Kambang Iwak](docs/screenshots/walikota-kambang-iwak.png) |
+| ![Benteng Kuto Besak](docs/screenshots/kuto-besak.png) | ![City Hall & Kambang Iwak](docs/screenshots/walikota-kambang-iwak.png) |
 
-| Kampung Kapitan & 7 Ulu | Stadion Gelora Sriwijaya Jakabaring (Malam) |
+| Kampung Kapitan & 7 Ulu Waterfront | Gelora Sriwijaya Jakabaring Stadium (Night) |
 | :---: | :---: |
-| ![Kampung Kapitan](docs/screenshots/kampung-kapitan.png) | ![Stadion Jakabaring Malam](docs/screenshots/jakabaring-night.png) |
+| ![Kampung Kapitan](docs/screenshots/kampung-kapitan.png) | ![Jakabaring Stadium Night](docs/screenshots/jakabaring-night.png) |
 
-| Jembatan Musi IV (Cable-Stayed) | Pulau Kemaro & Pagoda 9 Lantai |
+| Musi IV Cable-Stayed Bridge | Kemaro Island & 9-Story Pagoda |
 | :---: | :---: |
-| ![Jembatan Musi IV](docs/screenshots/musi-iv.png) | ![Pulau Kemaro](docs/screenshots/pulau-kemaro.png) |
+| ![Musi IV Bridge](docs/screenshots/musi-iv.png) | ![Kemaro Island](docs/screenshots/pulau-kemaro.png) |
 
-## Tengara & Fitur yang Disertakan
+## Included Landmarks & Features
 
-- **Sungai Musi & Tepian Seberang Ilir / Seberang Ulu**: Permukaan air dengan shader riak animasi dan pantulan cahaya, turap penahan tepian, dermaga, serta lalu lintas *perahu ketek* dan tongkang batu bara.
-- **Jembatan Ampera & Jembatan Musi IV**: Jembatan Ampera merah bata dengan menara portal-H & kendaraan melintas, dilengkapi **Jembatan Musi IV** bergaya *cable-stayed* berpilon putih kembar dan pita LED malam di hilir timur (bebas alur pelayaran).
-- **Pusat Kota Seberang Ilir**: **Bundaran Air Mancur Masjid Agung** (air mancur animasi), **Masjid Agung SMB I**, **Monpera**, serta **Gedung & Kawasan Pasar 16 Ilir** lengkap dengan tenda pedagang tepi sungai.
-- **Benteng Kuto Besak, Museum SMB II, Kantor Walikota & Kambang Iwak**: Benteng Kuto Besak + Plaza BKB, bangunan kolonial **Museum SMB II**, **Menara Air / Gedung Ledeng Kantor Walikota**, serta **Taman & Danau Kambang Iwak** berlintasan jogging dan pepohonan rimbun.
-- **Seberang Ulu, Kampung Kapitan & Jakabaring Sport City**: Kawasan heritage **Kampung Kapitan (7 Ulu)** + gugus *Rumah Limas*, **Stadion Gelora Sriwijaya Jakabaring** (atap lengkung kembar & 4 menara lampu sorot malam), serta jalur **LRT Sumsel** dari Stasiun Ampera hingga Stasiun Jakabaring.
-- **Pulau Kemaro**: Pulau hilir di timur Jembatan Musi IV dengan Pagoda oktagonal sembilan lantai merah-emas, Klenteng Hok Tjing Rio, pepohonan tropis, dan dermaga kayu.
-- **Jaringan Jalan & Kepadatan Kota (`InstancedMesh`)**: Zoning permukaan kota (komersial/permukiman/taman), jaringan jalan arteri & kolektor (Jl. Sudirman, Jl. Kolonel Atmo, Jl. Merdeka, Jl. A. Yani, Jl. Gub. H. Bastari) dengan 40 kendaraan jalan animasi, 81 ruko berjendela menyala malam, 241 rumah permukiman padat, 68 lampu jalan, dan 978 pohon tropis membingkai kota.
-- **Kontrol Eksplorasi Interaktif**:
-  - Orbit (`seret klik kiri`), zoom (`gulir`), dan pan (`seret klik kanan`).
-  - **10 Preset Kamera**: `Overview`, `Ampera`, `Bundaran & Masjid`, `Pasar 16 Ilir`, `Kuto Besak`, `Walikota & KI`, `Kampung Kapitan`, `Jakabaring`, `Jembatan Musi IV`, dan `Pulau Kemaro`.
-  - **3 Mode Pencahayaan**: `Siang`, `Senja`, dan `Malam`.
-  - **Label 3D Interaktif & Kartu Info**: Pin tengara yang bisa diklik langsung untuk menerbangkan kamera, tombol `Label 3D`, serta kartu informasi yang dapat dilipat.
+- **Musi River & Waterfront Embankments**: Custom animated water-ripple shader with sun/dusk/night reflections, Seberang Ilir & Seberang Ulu riverbanks, wooden landing piers, plus live river traffic (*perahu ketek* boats and coal barges with tugboats).
+- **Ampera Bridge & Musi IV Bridge**: Iconic brick-red **Ampera Bridge** (twin H-portal towers, steel truss span, counterweights, streetlamps, moving traffic) paired with the modern white cable-stayed **Musi IV Bridge** downstream with night LED strips and full navigation-channel clearance.
+- **Seberang Ilir City Core**: Animated **Bundaran Air Mancur** (Fountain Roundabout), **Great Mosque of Sultan Mahmud Badaruddin I** (3-tiered Palembang roof & white minarets), **Monpera Monument**, and the **Pasar 16 Ilir** market building with colorful riverside stalls.
+- **Heritage & Civic West District**: **Benteng Kuto Besak (BKB)** fortress & Plaza BKB, colonial **SMB II Museum**, **Palembang City Hall** (*Menara Air / Gedung Ledeng* water tower), and **Kambang Iwak Lake & Park** with a jogging track and gazebo.
+- **Seberang Ulu, Kampung Kapitan & Jakabaring Sport City**: Heritage **Kampung Kapitan (7 Ulu)** stilt pavilions and traditional **Rumah Limas** clusters, **Gelora Sriwijaya Jakabaring Stadium** (twin arched canopies & 4 illuminated night floodlight towers), and the elevated **South Sumatra LRT** line running between Ampera Station and Jakabaring Station.
+- **Kemaro Island**: Downstream river island featuring the 9-story red-and-gold octagonal **Pagoda**, **Hok Tjing Rio Temple**, tropical foliage, and wooden jetty.
+- **Connected Road Grid & Urban Fabric (`InstancedMesh`)**: Zoned commercial/residential paving, major Palembang avenues (*Jl. Jenderal Sudirman, Jl. Kolonel Atmo, Jl. Merdeka, Jl. Jenderal Ahmad Yani, Jl. Gubernur H. Bastari*) with 40 animated vehicles, 81 night-lit shophouses (*ruko*), 241 residential houses, 68 streetlamps, and 978 tropical trees framing the city.
+- **Interactive Controls**:
+  - Orbit (`left-drag`), zoom (`scroll`), and pan (`right-drag`).
+  - **10 Camera Presets**: `Overview`, `Ampera`, `Bundaran & Masjid`, `Pasar 16 Ilir`, `Kuto Besak`, `Walikota & KI`, `Kampung Kapitan`, `Jakabaring`, `Jembatan Musi IV`, and `Pulau Kemaro`.
+  - **3 Lighting Modes**: Daylight (`Siang`), Sunset (`Senja`), and Night (`Malam`).
+  - **Clickable 3D Labels & Info Card**: Click any floating 3D landmark pin to smoothly fly the camera there, toggle pins with `Label 3D`, or expand/collapse the info panel.
 
-## Prasyarat
+## Prerequisites
 
-- **Node.js `>= 20`** (terverifikasi pada `v24.22.1` dengan `npm 11.19.1`).
+- **Node.js `>= 20`** (verified on `v24.22.1` with `npm 11.19.1`).
 
-## Cara Menjalankan Secara Lokal
+## Getting Started Locally
 
-1. **Clone & instalasi dependensi:**
+1. **Clone & install dependencies:**
    ```bash
    git clone https://github.com/andresudi/palembang-3d.git
    cd palembang-3d
    npm install
    ```
 
-2. **Mode pengembangan (hot-reload):**
+2. **Run development server (hot-reload):**
    ```bash
    npm run dev
    ```
-   Buka URL lokal yang ditampilkan Vite di terminal (umumnya `http://localhost:5173`).
+   Open the local URL printed by Vite (default: `http://localhost:5173`).
 
-3. **Build produksi & jalankan preview lokal:**
+3. **Build & preview production bundle:**
    ```bash
    npm run build
    npm run preview
    ```
-   Lalu buka `http://127.0.0.1:4173` di peramban (Chrome/Safari/Firefox dengan WebGL aktif).
+   Open `http://127.0.0.1:4173` in a WebGL-enabled browser (Chrome, Safari, or Firefox).
 
-4. **Verifikasi render headless WebGL2 & tangkapan layar otomatis** (opsional untuk QA):
+4. **Run automated headless WebGL2 visual verification** (optional QA):
    ```bash
    npm run verify
    ```
-   Skrip [`scripts/verify.mjs`](./scripts/verify.mjs) menjalankan `vite preview` di port `4179`, membuka Chromium headless (`ANGLE SwiftShader`), memeriksa `0` console/page error, menguji seluruh preset kamera dan mode pencahayaan, mengecek keragaman piksel kanvas, memverifikasi batas tata letak HUD pada viewport mobile (`390×844`), serta menyimpan tangkapan layar ke folder `artifacts/`. (Memerlukan Playwright + binary Chromium headless terpasang lokal.)
+   [`scripts/verify.mjs`](./scripts/verify.mjs) launches `vite preview` on port `4179`, opens headless Chromium (`ANGLE SwiftShader`), verifies `0` console/page errors, exercises all 10 camera presets and lighting modes, checks canvas pixel diversity and mobile HUD bounds (`390×844`), and writes fresh PNG captures into `artifacts/`. *(Requires Playwright and headless Chromium installed locally.)*
 
-## Batasan Prototipe
+## Prototype Scope & Limitations
 
-- **Skala Diorama Terkompresi**: Orientasi geografis relatif dijaga (*Seberang Ilir* di utara `-Z`, *Seberang Ulu* di selatan `+Z`, *Sungai Musi* mengalir barat `-X` ke timur `+X`), tetapi jarak memanjang dikompresi secara sengaja (di dunia nyata Benteng Kuto Besak berjarak ~0,5–0,7 km di barat Ampera sedangkan Pulau Kemaro ~6 km di timur hilir) agar seluruh tengara ikonik tetap mudah dieksplorasi dalam satu layar.
-- **Geometri Prosedural Stylized**: Seluruh bangunan, jembatan, kapal, dan medan dibangun secara prosedural dengan primitif Three.js; bukan hasil fotogrametri, BIM, maupun ekstrusi data GIS nyata.
-- **Tidak Ada Streaming GIS / Data Real-Time**: Belum terhubung ke DEMNAS, OpenStreetMap, Google 3D Tiles, maupun telemetri lalu lintas sungai/LRT langsung.
+- **Compressed Diorama Scale**: Relative geographic orientation is preserved (*Seberang Ilir* north `-Z`, *Seberang Ulu* south `+Z`, *Musi River* flowing west `-X` to east `+X`), while longitudinal distances are intentionally compressed (in reality Benteng Kuto Besak lies ~0.6 km west of Ampera and Kemaro Island ~6 km downstream to the east) so all major landmarks remain legible in a single interactive panorama.
+- **100% Procedural Stylized Geometry**: Every landmark, bridge, vessel, and urban block is constructed procedurally with Three.js primitives and custom shaders rather than photogrammetry, BIM models, or real-world GIS building extrusions.
+- **Offline & Synthetic Traffic**: No external GIS tile streaming (OSM, DEMNAS, or 3D Tiles) or live AIS/LRT telemetry APIs are connected; river vessels, road traffic, and LRT movement are deterministic procedural animations.
 
-## Laporan Analisis Kritis
+## Feasibility & Engineering Report
 
-Lihat [`ANALISIS_PALEMBANG_3D.md`](./ANALISIS_PALEMBANG_3D.md) untuk kajian mendalam berbahasa Indonesia mengenai kelayakan implementasi skala kota, perbandingan pola eksekusi (multi-agent orchestrator vs alternatif), estimasi waktu & penggunaan token, rekomendasi model AI per fase, serta uji stres asumsi dan risiko.
+See [`ANALISIS_PALEMBANG_3D.md`](./ANALISIS_PALEMBANG_3D.md) (written in Indonesian) for an in-depth technical analysis covering 3-tier city-scale feasibility (Stylized vs. GIS OSM+DEMNAS vs. Digital Twin), multi-agent orchestration vs. alternative execution patterns, phase-by-phase effort & token estimates, AI model recommendations, assumption stress-testing, and a risk register.
