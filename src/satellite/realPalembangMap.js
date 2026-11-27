@@ -4,6 +4,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { REAL_PRESETS, REAL_MARKERS } from './realLandmarks.js';
 import { createHeroLandmarksCustomLayer } from './heroLandmarksLayer.js';
 import { createAnimatedTrafficLayer } from './animatedTrafficLayer.js';
+import { createCameraModesController } from './cameraModes.js';
+import { createExploreDrawer } from './exploreDrawer.js';
 
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
@@ -295,54 +297,15 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     lightingBtns.set(mode.id, btn);
   }
 
-  // Toggle OSM 3D Buildings
-  const bldgBtn = document.createElement('button');
-  bldgBtn.type = 'button';
-  bldgBtn.className = 'toggle-btn active';
-  bldgBtn.textContent = 'Gedung 3D';
-  bldgBtn.dataset.buildingsBtn = 'true';
-  bldgBtn.setAttribute('aria-pressed', 'true');
-  bldgBtn.addEventListener('click', () => {
-    buildingsVisible = !buildingsVisible;
-    bldgBtn.classList.toggle('active', buildingsVisible);
-    bldgBtn.setAttribute('aria-pressed', String(buildingsVisible));
-    if (map.getLayer('osm-buildings-3d')) {
-      map.setLayoutProperty('osm-buildings-3d', 'visibility', buildingsVisible ? 'visible' : 'none');
-    }
-  });
+  // Slim Top-Bar: [Satelit 3D | Diorama] + [Siang | Senja | Malam] + [Eksplorasi Drawer Toggle]
+  const exploreBtn = document.createElement('button');
+  exploreBtn.type = 'button';
+  exploreBtn.className = 'toggle-btn explore-trigger';
+  exploreBtn.innerHTML = `<span class="explore-dot" aria-hidden="true"></span>Eksplorasi`;
+  exploreBtn.dataset.exploreBtn = 'true';
+  exploreBtn.setAttribute('aria-expanded', 'false');
 
-  // Toggle Live Animated Traffic, LRT & River Vessels
-  const trafficBtn = document.createElement('button');
-  trafficBtn.type = 'button';
-  trafficBtn.className = 'toggle-btn active';
-  trafficBtn.textContent = 'Animasi';
-  trafficBtn.dataset.trafficBtn = 'true';
-  trafficBtn.setAttribute('aria-pressed', 'true');
-  trafficBtn.addEventListener('click', () => {
-    trafficVisible = !trafficVisible;
-    trafficBtn.classList.toggle('active', trafficVisible);
-    trafficBtn.setAttribute('aria-pressed', String(trafficVisible));
-    traffic3d.setEnabled(trafficVisible);
-  });
-
-  // Toggle 3D Landmark Pins
-  const labelBtn = document.createElement('button');
-  labelBtn.type = 'button';
-  labelBtn.className = 'toggle-btn active';
-  labelBtn.textContent = 'Label 3D';
-  labelBtn.dataset.labelsBtn = 'true';
-  labelBtn.setAttribute('aria-pressed', 'true');
-  labelBtn.addEventListener('click', () => {
-    labelsVisible = !labelsVisible;
-    rootEl.dataset.labels = String(labelsVisible);
-    labelBtn.classList.toggle('active', labelsVisible);
-    labelBtn.setAttribute('aria-pressed', String(labelsVisible));
-    for (const m of markerObjs) {
-      m.el.style.display = labelsVisible ? '' : 'none';
-    }
-  });
-
-  topControls.append(modeGroup, lightingGroup, bldgBtn, trafficBtn, labelBtn);
+  topControls.append(modeGroup, lightingGroup, exploreBtn);
   topBar.append(brand, topControls);
 
   // Info Card
@@ -392,9 +355,68 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
 
   const hint = document.createElement('div');
   hint.className = 'controls-hint';
-  hint.textContent = 'Seret untuk geser · Klik kanan + seret untuk putar/miring 3D · Gulir untuk zoom';
+  hint.textContent = 'Seret geser · Klik kanan putar/miring 3D · Buka "Eksplorasi" untuk Naik LRT/Perahu, Tur & Drone';
 
-  hud.append(topBar, infoCard, presetNav, hint);
+  let exploreDrawer;
+  const cameraModes = createCameraModesController({
+    map,
+    traffic3d,
+    ensureTrafficEnabled() {
+      if (!trafficVisible) {
+        trafficVisible = true;
+        traffic3d.setEnabled(true);
+        exploreDrawer?.syncTrafficToggle(true);
+      }
+    },
+    onSelectPreset(presetId, opts) {
+      selectPreset(presetId, opts);
+    },
+    onStateChange(state) {
+      rootEl.dataset.cameraMode = state.mode;
+      exploreBtn.classList.toggle('has-active-mode', state.mode !== 'free');
+      exploreDrawer?.syncModeBanner(state);
+    },
+  });
+
+  exploreDrawer = createExploreDrawer({
+    cameraModes,
+    onSelectPreset(id) {
+      selectPreset(id);
+    },
+    onToggleBuildings() {
+      buildingsVisible = !buildingsVisible;
+      if (map.getLayer('osm-buildings-3d')) {
+        map.setLayoutProperty('osm-buildings-3d', 'visibility', buildingsVisible ? 'visible' : 'none');
+      }
+      return buildingsVisible;
+    },
+    onToggleTraffic() {
+      trafficVisible = !trafficVisible;
+      traffic3d.setEnabled(trafficVisible);
+      return trafficVisible;
+    },
+    onToggleLabels() {
+      labelsVisible = !labelsVisible;
+      rootEl.dataset.labels = String(labelsVisible);
+      for (const m of markerObjs) {
+        m.el.style.display = labelsVisible ? '' : 'none';
+      }
+      return labelsVisible;
+    },
+    onSelectLighting(mode) {
+      applyLighting(mode);
+    },
+    onDrawerToggle(open) {
+      exploreBtn.classList.toggle('active', open);
+      exploreBtn.setAttribute('aria-expanded', String(open));
+    },
+  });
+
+  exploreBtn.addEventListener('click', () => {
+    exploreDrawer.setOpen(!exploreDrawer.isOpen());
+  });
+
+  hud.append(topBar, exploreDrawer.drawerEl, exploreDrawer.bannerEl, infoCard, presetNav, hint);
   rootEl.appendChild(hud);
 
   // Real-world interactive HTML landmark markers
@@ -433,9 +455,12 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     infoNote.textContent = p.note;
   }
 
-  function selectPreset(presetId) {
+  function selectPreset(presetId, opts = {}) {
     const p = REAL_PRESETS.find((x) => x.id === presetId);
     if (!p) return;
+    if (!opts.fromTour && cameraModes.getState().mode !== 'free') {
+      cameraModes.stopAll();
+    }
     syncPresetUi(p.id);
     isFlying = true;
     map.flyTo({
@@ -443,7 +468,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       zoom: p.zoom,
       pitch: p.pitch,
       bearing: p.bearing,
-      duration: 1200,
+      duration: opts.fromTour ? 1800 : 1200,
       essential: true,
     });
   }
@@ -527,6 +552,8 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       labelsVisible,
       buildingsVisible,
       trafficVisible,
+      drawerOpen: exploreDrawer.isOpen(),
+      cameraMode: cameraModes.getState().mode,
       tweening: isFlying,
       landmarkCount: REAL_PRESETS.length,
       animationStats: traffic3d.getStats(),
@@ -547,6 +574,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   });
 
   return function cleanup() {
+    cameraModes.cleanup();
     traffic3d.setEnabled(false);
     for (const m of markerObjs) m.marker.remove();
     map.remove();

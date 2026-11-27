@@ -149,8 +149,65 @@ try {
   await waitForMapSettled(page);
   await page.screenshot({ path: path.join(artifactsDir, 'preview-sat-night.png') });
 
+  // Phase 1: Slim top-bar + Collapsible Exploration Drawer + Ride-Along LRT + Ride-Along Boat + Free Drone
+  await page.click('[data-lighting-btn="siang"]');
+  await page.click('[data-explore-btn="true"]');
+  await page.waitForTimeout(500);
+  const drawerOpened = await page.evaluate(() => Boolean(window.__PALEMBANG_3D__?.drawerOpen));
+  if (!drawerOpened) throw new Error('Exploration drawer did not open');
+  await page.screenshot({ path: path.join(artifactsDir, 'preview-sat-drawer.png') });
+
+  // Ride-Along LRT Sumsel
+  await page.click('[data-action-mode="ride-lrt"]');
+  await page.click('[data-explore-btn="true"]'); // collapse drawer so chase-cam is unobstructed
+  await page.waitForTimeout(400);
+  const lrtCam0 = await page.evaluate(() => ({ mode: window.__PALEMBANG_3D__?.cameraMode, cam: window.__PALEMBANG_3D__?.camera }));
+  await page.waitForFunction(
+    (c0) => {
+      const s = window.__PALEMBANG_3D__;
+      return s?.cameraMode === 'ride-lrt' && Math.hypot(s.camera.lng - c0.lng, s.camera.lat - c0.lat) > 0.000015;
+    },
+    lrtCam0.cam,
+    { timeout: 10000 }
+  );
+  const lrtCam1 = await page.evaluate(() => ({ mode: window.__PALEMBANG_3D__?.cameraMode, cam: window.__PALEMBANG_3D__?.camera }));
+  const rideLrtMoved = lrtCam0.mode === 'ride-lrt' && lrtCam1.mode === 'ride-lrt';
+  await page.screenshot({ path: path.join(artifactsDir, 'preview-sat-ride-lrt.png') });
+
+  // Ride-Along Perahu Ketek
+  await page.click('[data-explore-btn="true"]');
+  await page.waitForTimeout(250);
+  await page.click('[data-action-mode="ride-boat"]');
+  await page.click('[data-explore-btn="true"]');
+  await page.waitForTimeout(1800);
+  const boatMode = await page.evaluate(() => window.__PALEMBANG_3D__?.cameraMode);
+  if (boatMode !== 'ride-boat') throw new Error(`Ride-Along Boat failed: mode=${boatMode}`);
+  await page.screenshot({ path: path.join(artifactsDir, 'preview-sat-ride-boat.png') });
+
+  // Free Drone WASD flight
+  await page.click('[data-explore-btn="true"]');
+  await page.waitForTimeout(250);
+  await page.click('[data-action-mode="drone"]');
+  await page.click('[data-explore-btn="true"]');
+  await page.waitForTimeout(550);
+  const droneCam0 = await page.evaluate(() => window.__PALEMBANG_3D__?.camera);
+  await page.keyboard.down('KeyW');
+  await page.waitForFunction(
+    (c0) => {
+      const s = window.__PALEMBANG_3D__;
+      return s?.cameraMode === 'drone' && Math.hypot(s.camera.lng - c0.lng, s.camera.lat - c0.lat) > 0.00003;
+    },
+    droneCam0,
+    { timeout: 10000 }
+  );
+  await page.keyboard.up('KeyW');
+  const droneCam1 = await page.evaluate(() => window.__PALEMBANG_3D__?.camera);
+  const droneMoved = Math.hypot(droneCam1.lng - droneCam0.lng, droneCam1.lat - droneCam0.lat) > 0.00003;
+  await page.screenshot({ path: path.join(artifactsDir, 'preview-sat-drone.png') });
+  await page.click('[data-stop-mode-btn="true"]');
+
   const telemetry = await page.evaluate(() => window.__PALEMBANG_3D__);
-  console.log(JSON.stringify({ status: 'PASS', animationMoved, animT0, animT1, telemetry, consoleErrors, pageErrors }, null, 2));
+  console.log(JSON.stringify({ status: 'PASS', animationMoved, drawerOpened, rideLrtMoved, boatMode, droneMoved, animT0, animT1, telemetry, consoleErrors, pageErrors }, null, 2));
 } finally {
   if (browser) await browser.close().catch(() => {});
   if (!previewProc.killed) previewProc.kill('SIGTERM');

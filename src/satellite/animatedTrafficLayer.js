@@ -1445,6 +1445,108 @@ export function createAnimatedTrafficLayer() {
     });
   }
 
+  function findNearestStationName(lng, lat) {
+    let best = '';
+    let bestD = 1e9;
+    for (const st of pathData.stations || []) {
+      const d = Math.hypot((st.lng - lng) * 111000, (st.lat - lat) * 111000);
+      if (d < bestD) {
+        bestD = d;
+        best = st.name;
+      }
+    }
+    return best && bestD < 2500 ? `Dekat Stasiun ${best}` : 'Koridor LRT Sumsel';
+  }
+
+  function computeTargetPose(kind, index) {
+    const metersToLng = 1 / (111320 * Math.cos((-2.99 * Math.PI) / 180));
+    const metersToLat = 1 / 110574;
+
+    if (kind === 'lrt') {
+      const tr = lrtTrains[index % lrtTrains.length];
+      const s = samplePolyline(lrtPoly, tr.dist);
+      const fx = s.fx * tr.dir;
+      const fz = s.fz * tr.dir;
+      const lx = s.fz;
+      const lz = -s.fx;
+      const lng = s.lng + lx * tr.trackOffset * metersToLng;
+      const lat = s.lat - lz * tr.trackOffset * metersToLat;
+      const bearingDeg = ((Math.atan2(fx, -fz) * 180) / Math.PI + 360) % 360;
+      return {
+        kind: 'lrt',
+        index: index % lrtTrains.length,
+        lng,
+        lat,
+        fx,
+        fz,
+        bearingDeg,
+        speedKmh: Math.round(tr.speed * 3.6),
+        subtitle: findNearestStationName(lng, lat),
+      };
+    }
+
+    if (kind === 'barge') {
+      const bg = barges[index % barges.length];
+      const s = samplePolyline(riverPoly, bg.dist);
+      const fx = s.fx * bg.dir;
+      const fz = s.fz * bg.dir;
+      const lx = s.fz;
+      const lz = -s.fx;
+      const lng = s.lng + lx * bg.laneOffset * metersToLng;
+      const lat = s.lat - lz * bg.laneOffset * metersToLat;
+      const bearingDeg = ((Math.atan2(fx, -fz) * 180) / Math.PI + 360) % 360;
+      return {
+        kind: 'barge',
+        index: index % barges.length,
+        lng,
+        lat,
+        fx,
+        fz,
+        bearingDeg,
+        speedKmh: Math.round(bg.speed * 3.6),
+        subtitle: 'Alur Pelayaran Sungai Musi',
+      };
+    }
+
+    // Default: 'boat' (Perahu Ketek / Speedboat along main Palembang river channel)
+    const idx = index % MAIN_BOAT_COUNT;
+    const b = boats[idx];
+    const s = samplePolyline(b.poly, b.dist);
+    const fx = s.fx * b.dir;
+    const fz = s.fz * b.dir;
+    const lx = s.fz;
+    const lz = -s.fx;
+    const lng = s.lng + lx * b.laneOffset * metersToLng;
+    const lat = s.lat - lz * b.laneOffset * metersToLat;
+    const bearingDeg = ((Math.atan2(fx, -fz) * 180) / Math.PI + 360) % 360;
+    return {
+      kind: 'boat',
+      index: idx,
+      lng,
+      lat,
+      fx,
+      fz,
+      bearingDeg,
+      speedKmh: Math.round(b.speed * 3.6),
+      subtitle: 'Perairan Sungai Musi',
+    };
+  }
+
+  function pickClosestTargetIndex(kind, refLng = CORE_CENTER[0], refLat = CORE_CENTER[1]) {
+    const count = kind === 'lrt' ? lrtTrains.length : kind === 'barge' ? barges.length : MAIN_BOAT_COUNT;
+    let bestIdx = 0;
+    let bestDist = 1e12;
+    for (let i = 0; i < count; i++) {
+      const pose = computeTargetPose(kind, i);
+      const d = Math.hypot((pose.lng - refLng) * 111000, (pose.lat - refLat) * 111000);
+      if (d < bestDist) {
+        bestDist = d;
+        bestIdx = i;
+      }
+    }
+    return bestIdx;
+  }
+
   const customLayer = {
     id: 'palembang-live-traffic-3d',
     type: 'custom',
@@ -1489,5 +1591,12 @@ export function createAnimatedTrafficLayer() {
     },
   };
 
-  return { layer: customLayer, setLightingMode, setEnabled, getStats };
+  return {
+    layer: customLayer,
+    setLightingMode,
+    setEnabled,
+    getStats,
+    pickClosestTargetIndex,
+    getFollowTarget: computeTargetPose,
+  };
 }

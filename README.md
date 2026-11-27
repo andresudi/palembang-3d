@@ -32,6 +32,10 @@ Switch seamlessly with one click in the top bar between:
 | :---: | :---: |
 | ![Ampera Bridge Real Satellite 3D Day](docs/screenshots/sat-ampera.png) | ![Kemaro Island Real Satellite 3D](docs/screenshots/sat-kemaro.png) |
 
+| Exploration Drawer (Ride-Along, Tour & Drone) | Ride-Along South Sumatra LRT & Perahu Ketek |
+| :---: | :---: |
+| ![Exploration Drawer](docs/screenshots/sat-drawer.png) | ![Ride-Along Perahu Ketek Musi River](docs/screenshots/sat-ride-boat.png) |
+
 ---
 
 ## Mode 2: Offline Stylized PBR Diorama (Three.js + UnrealBloom)
@@ -61,11 +65,12 @@ Switch seamlessly with one click in the top bar between:
     - **1:1 Diorama-Parity Live Animations (`Animasi` toggle)**: `420` viewport-aware instanced road vehicles following real OpenStreetMap Palembang streets & bridge decks (Indonesian left-hand drive, dusk/night headlights & taillights, dynamically streaming into whichever district you zoom into), `8` articulated 3-car South Sumatra LRT trains, `42` *perahu ketek* & speedboats with soft aerial V-wakes (including Pulau Kemaro channels), `6` coal barge + tugboat convoys, animated **Bundaran Air Mancur** water fountain, and waving **Merah-Putih** flag at **Benteng Kuto Besak**.
 - **Offline Stylized PBR Diorama Mode**:
   - 100% procedural canvas PBR textures (grained asphalt, stone plaza paving, terracotta roof tiles, weathered colonial plaster, mowed stadium turf, multi-story shophouse facades with glowing night windows), dynamic `PMREMGenerator` sky IBL, drifting clouds & night starfield, animated river/road/LRT traffic, and mood-tuned `UnrealBloomPass`.
-- **Unified Interactive Controls**:
+- **Unified Interactive Controls & Exploration Drawer**:
+  - **Slim Top-Bar + Collapsible Left Drawer (`Eksplorasi`)**: Keeps 90%+ of the 3D viewport unobstructed while organizing **Ride-Along**, **Cinematic Auto-Tour**, **Free Drone (`WASD`/Arrows + `Q`/`E` + on-screen controls)**, **Landmark Search**, and **3D Layer Toggles** (`Gedung 3D`, `Animasi`, `Label 3D`).
+  - **1-Click Ride-Along Modes**: Hop aboard a moving 3-car **LRT Sumsel** train (with nearest-station telemetry), ride a **Perahu Ketek** along the Musi River toward Ampera Bridge, or trail a **Coal Barge** convoy.
   - **1-Click Mode Switcher**: `Satelit 3D` ↔ `Diorama` (or direct URL `?mode=satellite` / `?mode=diorama`).
   - **10 Camera Presets**: `Overview`, `Ampera`, `Bundaran & Masjid`, `Pasar 16 Ilir`, `Kuto Besak`, `Walikota & KI`, `Kampung Kapitan`, `Jakabaring`, `Jembatan Musi IV`, and `Pulau Kemaro`.
   - **3 Lighting Moods**: Daylight (`Siang`), Sunset (`Senja`), and Night (`Malam`).
-  - **Clickable Landmark Pins & Layer Toggles**: Toggle floating pins (`Label 3D`), OSM 3D extrusions (`Gedung 3D`), or live traffic/LRT/river animations (`Animasi`).
 
 ## Prerequisites
 
