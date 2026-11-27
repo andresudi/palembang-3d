@@ -1,6 +1,29 @@
 import * as THREE from 'three';
 import * as maplibregl from 'maplibre-gl';
 
+// Road-deck geometry shared with the animated traffic layer so vehicles drive exactly on the
+// hero bridge models (deck span + sloped approach ramps), not on the river surface below.
+export const HERO_BRIDGE_SPECS = [
+  {
+    id: 'ampera',
+    lngLat: [104.76340, -2.99194],
+    bearingDeg: 147.8,
+    spanHalf: 175,
+    rampLen: 160,
+    roadTop: 14.325,
+    roadHalfWidth: 8.75,
+  },
+  {
+    id: 'musi-iv',
+    lngLat: [104.77410, -2.98355],
+    bearingDeg: 159.5,
+    spanHalf: 200,
+    rampLen: 180,
+    roadTop: 16.275,
+    roadHalfWidth: 8,
+  },
+];
+
 function addBeam(parent, p1, p2, thickness, material) {
   const dir = new THREE.Vector3().subVectors(p2, p1);
   const len = dir.length();
@@ -9,6 +32,38 @@ function addBeam(parent, p1, p2, thickness, material) {
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
   parent.add(mesh);
   return mesh;
+}
+
+// Sloped concrete approach ramp from the bridge deck end down to ground level (the far end
+// sinks into the terrain, so any bank height mismatch stays hidden).
+function addApproachRamp(g, zStart, zEnd, roadY, deckW, roadW, mats) {
+  const dz = zEnd - zStart;
+  const dy = 0.15 - roadY;
+  const len = Math.hypot(dz, dy);
+  const phi = -Math.atan(dy / dz);
+  const midY = (roadY + 0.15) / 2;
+  const midZ = (zStart + zEnd) / 2;
+
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(deckW, 2.0, len), mats.concrete);
+  deck.position.set(0, midY - 1.2, midZ);
+  deck.rotation.x = phi;
+  g.add(deck);
+
+  const road = new THREE.Mesh(new THREE.BoxGeometry(roadW, 0.35, len), mats.asphalt);
+  road.position.set(0, midY, midZ);
+  road.rotation.x = phi;
+  g.add(road);
+
+  for (const t of [0.1, 0.32, 0.54]) {
+    const z = zStart + dz * t;
+    const h = roadY + dy * t - 2.4;
+    if (h < 2.5) continue;
+    for (const sx of [-deckW * 0.3, deckW * 0.3]) {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, h, 8), mats.concrete);
+      col.position.set(sx, h / 2, z);
+      g.add(col);
+    }
+  }
 }
 
 // True-scale Jembatan Ampera in real-world meters (towers ~63m tall, central lift span ~75m, deck ~360m)
@@ -124,6 +179,9 @@ function buildRealAmperaModel(mats) {
     }
   }
 
+  addApproachRamp(g, spanLen / 2, spanLen / 2 + 160, deckY + 0.15, 22, 17.5, mats);
+  addApproachRamp(g, -spanLen / 2, -spanLen / 2 - 160, deckY + 0.15, 22, 17.5, mats);
+
   return g;
 }
 
@@ -184,6 +242,9 @@ function buildRealMusiIVModel(mats) {
       }
     }
   }
+
+  addApproachRamp(g, spanLen / 2, spanLen / 2 + 180, deckY + 0.1, 20, 16, mats);
+  addApproachRamp(g, -spanLen / 2, -spanLen / 2 - 180, deckY + 0.1, 20, 16, mats);
 
   return g;
 }
@@ -296,6 +357,7 @@ export function createHeroLandmarksCustomLayer() {
   let renderer = null;
   let camera = null;
   let mapRef = null;
+  let baseBeaconIntensity = 0.6;
 
   const rotX = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
 
@@ -306,7 +368,8 @@ export function createHeroLandmarksCustomLayer() {
 
     mats.warmGlow.emissiveIntensity = 0.25 + nightGlow * 2.8;
     mats.cyanGlow.emissiveIntensity = 0.25 + nightGlow * 2.8;
-    mats.beacon.emissiveIntensity = 0.6 + nightGlow * 2.4;
+    baseBeaconIntensity = 0.6 + nightGlow * 2.4;
+    mats.beacon.emissiveIntensity = baseBeaconIntensity;
 
     for (const s of scenes) {
       if (isNight) {
@@ -350,6 +413,10 @@ export function createHeroLandmarksCustomLayer() {
       if (!renderer || !camera) return;
       const projArr = options?.defaultProjectionData?.mainMatrix || options?.modelViewProjectionMatrix || options;
       const m = new THREE.Matrix4().fromArray(projArr);
+
+      // Gentle aviation warning beacon pulse on Ampera's twin 66m towers
+      const pulse = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(performance.now() * 0.0045));
+      mats.beacon.emissiveIntensity = baseBeaconIntensity * (0.55 + pulse * 0.9);
 
       renderer.resetState();
 

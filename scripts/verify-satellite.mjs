@@ -105,6 +105,22 @@ try {
   }
   await page.screenshot({ path: path.join(artifactsDir, 'preview-sat-overview.png') });
 
+  // Verify live animation is actively advancing across frames
+  const animT0 = await page.evaluate(() => window.__PALEMBANG_3D__?.animationStats);
+  await page.waitForTimeout(1200);
+  const animT1 = await page.evaluate(() => window.__PALEMBANG_3D__?.animationStats);
+  const animationMoved = Boolean(
+    animT0?.active &&
+    animT1?.active &&
+    animT1.tick > animT0.tick &&
+    (animT1.sampleVehicleDist !== animT0.sampleVehicleDist ||
+      animT1.sampleLrtDist !== animT0.sampleLrtDist ||
+      animT1.sampleBoatDist !== animT0.sampleBoatDist)
+  );
+  if (!animationMoved) {
+    throw new Error(`Satellite live animation did not advance: t0=${JSON.stringify(animT0)} t1=${JSON.stringify(animT1)}`);
+  }
+
   for (const [presetId, file] of [
     ['ampera', 'preview-sat-ampera.png'],
     ['masjid-lrt', 'preview-sat-masjid.png'],
@@ -134,7 +150,7 @@ try {
   await page.screenshot({ path: path.join(artifactsDir, 'preview-sat-night.png') });
 
   const telemetry = await page.evaluate(() => window.__PALEMBANG_3D__);
-  console.log(JSON.stringify({ status: 'PASS', telemetry, consoleErrors, pageErrors }, null, 2));
+  console.log(JSON.stringify({ status: 'PASS', animationMoved, animT0, animT1, telemetry, consoleErrors, pageErrors }, null, 2));
 } finally {
   if (browser) await browser.close().catch(() => {});
   if (!previewProc.killed) previewProc.kill('SIGTERM');

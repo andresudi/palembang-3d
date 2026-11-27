@@ -3,6 +3,7 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { REAL_PRESETS, REAL_MARKERS } from './realLandmarks.js';
 import { createHeroLandmarksCustomLayer } from './heroLandmarksLayer.js';
+import { createAnimatedTrafficLayer } from './animatedTrafficLayer.js';
 
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
@@ -219,11 +220,13 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   let activeLighting = 'siang';
   let labelsVisible = true;
   let buildingsVisible = true;
+  let trafficVisible = true;
   let infoExpanded = false;
   let isReady = false;
   let isFlying = false;
 
   const hero3d = createHeroLandmarksCustomLayer();
+  const traffic3d = createAnimatedTrafficLayer();
 
   // --- Songket-slate HUD matching Diorama mode + Mode & 3D Buildings toggles ---
   const hud = document.createElement('div');
@@ -238,7 +241,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     <span class="brand-mark" aria-hidden="true"></span>
     <div class="brand-text">
       <h1>Kota Palembang 3D</h1>
-      <p>Satelit Nyata Esri · Bangunan 3D OSM · Skala 1:1</p>
+      <p>Satelit Esri · Gedung 3D OSM · Lalu Lintas, LRT & Sungai Aktif</p>
     </div>
   `;
 
@@ -304,6 +307,20 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     }
   });
 
+  // Toggle Live Animated Traffic, LRT & River Vessels
+  const trafficBtn = document.createElement('button');
+  trafficBtn.type = 'button';
+  trafficBtn.className = 'toggle-btn active';
+  trafficBtn.textContent = 'Animasi';
+  trafficBtn.dataset.trafficBtn = 'true';
+  trafficBtn.setAttribute('aria-pressed', 'true');
+  trafficBtn.addEventListener('click', () => {
+    trafficVisible = !trafficVisible;
+    trafficBtn.classList.toggle('active', trafficVisible);
+    trafficBtn.setAttribute('aria-pressed', String(trafficVisible));
+    traffic3d.setEnabled(trafficVisible);
+  });
+
   // Toggle 3D Landmark Pins
   const labelBtn = document.createElement('button');
   labelBtn.type = 'button';
@@ -321,7 +338,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     }
   });
 
-  topControls.append(modeGroup, lightingGroup, bldgBtn, labelBtn);
+  topControls.append(modeGroup, lightingGroup, bldgBtn, trafficBtn, labelBtn);
   topBar.append(brand, topControls);
 
   // Info Card
@@ -438,6 +455,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
 
     const theme = LIGHTING_THEMES[key];
     hero3d.setLightingMode(key);
+    traffic3d.setLightingMode(key);
 
     if (map.getLayer('satellite-imagery')) {
       map.setSky(theme.sky);
@@ -463,6 +481,9 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   map.on('style.load', () => {
     if (!map.getLayer('palembang-hero-3d')) {
       map.addLayer(hero3d.layer, 'road-labels');
+    }
+    if (!map.getLayer('palembang-live-traffic-3d')) {
+      map.addLayer(traffic3d.layer, 'road-labels');
     }
     applyLighting(activeLighting);
   });
@@ -501,8 +522,10 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       lighting: activeLighting,
       labelsVisible,
       buildingsVisible,
+      trafficVisible,
       tweening: isFlying,
       landmarkCount: REAL_PRESETS.length,
+      animationStats: traffic3d.getStats(),
       camera: Object.freeze({
         lng: Number(center.lng.toFixed(5)),
         lat: Number(center.lat.toFixed(5)),
@@ -520,6 +543,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   });
 
   return function cleanup() {
+    traffic3d.setEnabled(false);
     for (const m of markerObjs) m.marker.remove();
     map.remove();
   };
