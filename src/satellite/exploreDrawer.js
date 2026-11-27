@@ -15,7 +15,6 @@ export function createExploreDrawer({
   routePlanner,
   passport,
   ambience,
-  audioGuide,
   weatherGis,
   onSelectPoi,
   onCategoryChange,
@@ -810,17 +809,6 @@ export function createExploreDrawer({
 
     if (camState.mode === 'tour') {
       const en = i18n.getLang() === 'en';
-      const narrOn = Boolean(audioGuide?.getState?.().autoTourNarration);
-      const narrBtn = document.createElement('button');
-      narrBtn.type = 'button';
-      narrBtn.className = `banner-btn${narrOn ? ' active' : ''}`;
-      narrBtn.dataset.tourNarrationBtn = 'true';
-      narrBtn.textContent = en ? `🔊 Voice: ${narrOn ? 'ON' : 'OFF'}` : `🔊 Narasi: ${narrOn ? 'ON' : 'OFF'}`;
-      narrBtn.addEventListener('click', () => {
-        audioGuide?.toggleAutoTourNarration?.();
-        syncModeBanner(cameraModes.getState(), playableBoat.getState());
-      });
-
       const pauseBtn = document.createElement('button');
       pauseBtn.type = 'button';
       pauseBtn.className = 'banner-btn';
@@ -833,7 +821,7 @@ export function createExploreDrawer({
       nextBtn.textContent = en ? 'Next' : 'Berikutnya';
       nextBtn.addEventListener('click', () => cameraModes.nextTourStop());
 
-      bannerActions.append(narrBtn, pauseBtn, nextBtn);
+      bannerActions.append(pauseBtn, nextBtn);
     } else if (camState.mode === 'drone') {
       const pad = document.createElement('div');
       pad.className = 'drone-pad';

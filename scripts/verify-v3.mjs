@@ -97,10 +97,9 @@ try {
   await page.click('[data-lb-close]');
   await page.waitForTimeout(200);
 
-  // 2. Test Audio Guide Speak button & Tour Narration toggle
-  await page.click('[data-speak-btn="true"]');
-  await page.waitForTimeout(200);
-  const speakState = await page.evaluate(() => window.__PALEMBANG_3D__?.audioGuide);
+  // 2. Verify TTS Audio Guide button was removed
+  const speakBtnCount = await page.locator('[data-speak-btn="true"]').count();
+  if (speakBtnCount !== 0) throw new Error('Audio Guide speak button still present');
 
   // 3. Open 5-Era Historical Timeline -> verify archival sepia filter & era switching
   await page.click('[data-explore-btn="true"]');
@@ -136,7 +135,7 @@ try {
         status: 'PASS',
         amperaPhoto,
         lbOpened,
-        speakState,
+        speakBtnCount,
         era1,
         era2,
         afterExit,

@@ -1623,38 +1623,6 @@ button:focus-visible {
   background: linear-gradient(180deg, rgba(10, 16, 22, 0), rgba(10, 16, 22, 0.86));
 }
 
-.info-action-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 9px;
-}
-
-.info-action-row .info-gmaps-link {
-  margin-top: 0;
-}
-
-.info-speak-btn {
-  padding: 5px 10px;
-  border-radius: 7px;
-  font-size: 0.73rem;
-  font-weight: 650;
-  color: var(--ink-primary);
-  background: rgba(255, 255, 255, 0.09);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-}
-
-.info-speak-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.info-speak-btn.active {
-  background: var(--accent-ampera);
-  border-color: var(--accent-ampera);
-  color: #fff;
-}
-
 .lightbox-card {
   width: 100%;
   max-width: 720px;

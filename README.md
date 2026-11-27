@@ -86,8 +86,7 @@ Switch seamlessly with one click in the top bar between:
     - Steer your own Songket red-and-gold *Perahu Ketek* (`WASD` / Arrows / touch controls) safely inside the Musi River channel and collect **5 rotating golden Srivijaya relics** with live distance compass, radar dots, and completion timer.
   - **Real Road Route Planner, Google Maps, Bilingual (`ID / EN`), 2D Radar & PWA**:
     - Real driving routes via public **OSRM** with automatic local **A\* fallback** on the baked 413 km Palembang OSM road graph, direct **Open in Google Maps** links on every POI & route, full **Indonesian ↔ English** switcher, clickable **2D Mini-Map Radar**, and **PWA** support (`manifest.webmanifest` + `sw.js`).
-  - **Living Tour Guide & Historical Storytelling (v3.0 — Zero API Key)**:
-    - **Web Speech Audio Guide (`ID / EN`)**: Click **`🔊 Bacakan` / `🔊 Listen`** on any Info Card or enable opt-in **Auto Narration** during the Cinematic Auto-Tour to hear landmark, culinary, and historical stories read aloud in Indonesian or English.
+  - **Visual Heritage & Historical Storytelling (v3.0 — Zero API Key)**:
     - **Real Wikimedia Commons Photos & Lightbox**: Automatically fetches & caches authentic photographs from the Wikipedia/Wikimedia REST API into every Info Card with click-to-enlarge fullscreen Lightbox and graceful offline fallback.
     - **5-Era Palembang Historical Timeline**: Travel across **683 CE Srivijaya → 1780 Sultanate → 1928 Colonial Gedung Ledeng → 1965 Ampera Bridge → 2018+ Modern LRT**, automatically flying to each era's flagship landmark with archival sepia visual tone and a 1-click **Back to Present** reset.
   - **Mobile-Ready UX, Performance & Onboarding (v2.5)**:

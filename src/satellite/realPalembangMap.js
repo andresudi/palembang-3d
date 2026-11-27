@@ -15,7 +15,6 @@ import { createRoutePlanner } from './routePlanner.js';
 import { createMiniMapRadar } from './miniMapRadar.js';
 import { createI18n } from './i18n.js';
 import { createOnboardingAndHelp } from './onboardingHelp.js';
-import { createAudioGuide } from './audioGuide.js';
 import { fetchWikimediaPhoto, createPhotoLightbox } from './wikimediaPhoto.js';
 import { createHistoricalTimeline } from './historicalTimeline.js';
 
@@ -432,23 +431,13 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   const infoNote = document.createElement('p');
   infoNote.className = 'info-note';
 
-  const infoActionRow = document.createElement('div');
-  infoActionRow.className = 'info-action-row';
-
-  const infoSpeakBtn = document.createElement('button');
-  infoSpeakBtn.type = 'button';
-  infoSpeakBtn.className = 'info-speak-btn';
-  infoSpeakBtn.dataset.speakBtn = 'true';
-  infoSpeakBtn.textContent = '🔊 Bacakan';
-
   const infoGmaps = document.createElement('a');
   infoGmaps.className = 'info-gmaps-link hidden';
   infoGmaps.target = '_blank';
   infoGmaps.rel = 'noopener noreferrer';
   infoGmaps.textContent = 'Buka di Google Maps ↗';
 
-  infoActionRow.append(infoSpeakBtn, infoGmaps);
-  infoCard.append(infoHeader, infoPhotoBtn, infoTitle, infoBody, infoNote, infoActionRow);
+  infoCard.append(infoHeader, infoPhotoBtn, infoTitle, infoBody, infoNote, infoGmaps);
 
   // Bottom Preset Dock
   const presetNav = document.createElement('nav');
@@ -484,33 +473,6 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     infoPhotoBtn.classList.add('hidden');
   });
 
-  function syncSpeakButton(st) {
-    const en = i18n.getLang() === 'en';
-    infoSpeakBtn.classList.toggle('active', Boolean(st?.speaking));
-    infoSpeakBtn.textContent = st?.speaking
-      ? (en ? '⏹ Stop' : '⏹ Berhenti')
-      : (en ? '🔊 Listen' : '🔊 Bacakan');
-  }
-
-  const audioGuide = createAudioGuide({
-    onStateChange(st) {
-      syncSpeakButton(st);
-      if (cameraModes?.getState?.().mode === 'tour') {
-        exploreDrawer?.syncModeBanner(cameraModes.getState(), playableBoat.getState());
-      }
-    },
-  });
-
-  infoSpeakBtn.addEventListener('click', () => {
-    if (audioGuide.getState().speaking) {
-      audioGuide.stop();
-      return;
-    }
-    const item = i18n.localizePoi(activePoiItem);
-    const script = `${item.title}. ${item.summary}`;
-    audioGuide.speak(script, { lang: i18n.getLang(), id: item.id });
-  });
-
   const timeline = createHistoricalTimeline({
     i18n,
     mapContainer,
@@ -531,7 +493,6 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     },
     onExit() {
       rootEl.dataset.timeline = 'false';
-      audioGuide.stop();
       syncPresetUi('overview');
     },
   });
@@ -808,7 +769,6 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     routePlanner,
     passport,
     ambience,
-    audioGuide,
     weatherGis,
     onSelectPoi(poi) {
       selectPoi(poi);
@@ -901,7 +861,6 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     hint.textContent = i18n.t('hint');
     infoGmaps.textContent = i18n.t('openGmaps');
     syncInfoCard(activePoiItem, { expand: infoExpanded });
-    syncSpeakButton(audioGuide.getState());
     exploreDrawer.applyLanguage();
     onboardingHelp.applyLanguage();
     timeline.applyLanguage();
@@ -1055,10 +1014,6 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     if (p.id !== 'overview') {
       stampPassport(p.id, p.label);
     }
-    if (opts.fromTour && audioGuide.getState().autoTourNarration) {
-      const loc = i18n.localizePoi(p);
-      audioGuide.speak(`${loc.title}. ${loc.summary}`, { lang: i18n.getLang(), id: p.id });
-    }
     isFlying = true;
     map.flyTo({
       center: p.center,
@@ -1209,7 +1164,6 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       quality: graphicsQuality,
       onboardingOpen: onboardingHelp.isOnboardingOpen(),
       helpOpen: onboardingHelp.isHelpOpen(),
-      audioGuide: audioGuide.getState(),
       timeline: timeline.getState(),
       currentPhoto: currentPhotoData ? Object.freeze({ title: currentPhotoData.title, thumbUrl: currentPhotoData.thumbUrl }) : null,
       lightboxOpen: lightbox.isOpen(),
@@ -1237,7 +1191,6 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
 
   return function cleanup() {
     stopTimelapse();
-    audioGuide.cleanup();
     timeline.cleanup();
     lightbox.cleanup();
     onboardingHelp.cleanup();
