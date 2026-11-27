@@ -164,6 +164,8 @@ button:focus-visible {
   top: 72px;
   right: 16px;
   width: 268px;
+  max-height: calc(100vh - 310px);
+  overflow-y: auto;
   padding: 11px 13px;
   border-radius: 10px;
 }
@@ -1571,6 +1573,241 @@ button:focus-visible {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   justify-content: flex-end;
+}
+
+/* --- v3.0 Storytelling: Wikimedia Photo Banner, Lightbox, Audio Guide & 5-Era Timeline --- */
+.info-card.collapsed .info-photo-wrap,
+.info-card.collapsed .info-action-row {
+  display: none;
+}
+
+.info-photo-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 94px;
+  margin: 8px 0 4px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(216, 173, 92, 0.3);
+  padding: 0;
+  background: #0e1820;
+}
+
+.info-photo-wrap.hidden {
+  display: none;
+}
+
+.info-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 240ms ease;
+}
+
+.info-photo-wrap:hover .info-photo-img {
+  transform: scale(1.04);
+}
+
+.info-photo-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 4px 8px;
+  font-size: 0.64rem;
+  font-weight: 600;
+  text-align: left;
+  color: #f4efe6;
+  background: linear-gradient(180deg, rgba(10, 16, 22, 0), rgba(10, 16, 22, 0.86));
+}
+
+.info-action-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.info-action-row .info-gmaps-link {
+  margin-top: 0;
+}
+
+.info-speak-btn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 0.73rem;
+  font-weight: 650;
+  color: var(--ink-primary);
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.info-speak-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.info-speak-btn.active {
+  background: var(--accent-ampera);
+  border-color: var(--accent-ampera);
+  color: #fff;
+}
+
+.lightbox-card {
+  width: 100%;
+  max-width: 720px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--hud-glass-strong);
+  border: 1px solid rgba(216, 173, 92, 0.45);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+}
+
+.lightbox-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.lightbox-head strong {
+  font-size: 0.94rem;
+}
+
+.lightbox-img-wrap {
+  max-height: 68vh;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #0a1117;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-img-wrap img {
+  max-width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+  display: block;
+}
+
+.lightbox-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 0.74rem;
+  color: var(--ink-muted);
+}
+
+/* 5-Era Historical Timeline Bar */
+.timeline-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: min(720px, calc(100vw - 24px));
+  padding: 10px 14px 12px;
+  border-radius: 13px;
+  background: var(--hud-glass-strong);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(216, 173, 92, 0.48);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.48);
+  pointer-events: auto;
+  z-index: 18;
+}
+
+.timeline-bar.hidden {
+  display: none;
+}
+
+[data-timeline="true"] .preset-dock,
+[data-timeline="true"] .controls-hint {
+  display: none;
+}
+
+[data-photo-mode="true"] .timeline-bar {
+  display: none !important;
+}
+
+.timeline-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.timeline-heading {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--accent-gold);
+}
+
+.timeline-nav-btns {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.timeline-track {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.timeline-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.timeline-node:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.timeline-node.active {
+  background: rgba(200, 61, 50, 0.28);
+  border-color: var(--accent-gold);
+}
+
+.tl-year {
+  font-size: 0.78rem;
+  font-weight: 750;
+  color: var(--ink-primary);
+}
+
+.timeline-node.active .tl-year {
+  color: var(--accent-gold);
+}
+
+.timeline-node small {
+  font-size: 0.66rem;
+  color: var(--ink-muted);
+}
+
+.satellite-stage {
+  transition: filter 450ms ease;
+}
+
+@media (max-width: 720px) {
+  [data-timeline="true"] .info-card:not(.collapsed) {
+    bottom: 132px;
+    max-height: 36vh;
+  }
+  .timeline-node small {
+    font-size: 0.58rem;
+  }
 }
 
 .webgl-fallback {

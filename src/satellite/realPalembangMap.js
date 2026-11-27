@@ -15,6 +15,9 @@ import { createRoutePlanner } from './routePlanner.js';
 import { createMiniMapRadar } from './miniMapRadar.js';
 import { createI18n } from './i18n.js';
 import { createOnboardingAndHelp } from './onboardingHelp.js';
+import { createAudioGuide } from './audioGuide.js';
+import { fetchWikimediaPhoto, createPhotoLightbox } from './wikimediaPhoto.js';
+import { createHistoricalTimeline } from './historicalTimeline.js';
 
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
@@ -268,6 +271,8 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   let isReady = false;
   let isFlying = false;
   let lastShareUrl = '';
+  let currentPhotoData = null;
+  let photoFetchSeq = 0;
 
   // Auto-select Eco graphics on mobile viewports (<=720px) unless user explicitly saved a preference
   const QUALITY_KEY = 'palembang_3d_quality_v1';
@@ -412,18 +417,38 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
   });
   infoHeader.append(infoZone, infoToggle);
 
+  const infoPhotoBtn = document.createElement('button');
+  infoPhotoBtn.type = 'button';
+  infoPhotoBtn.className = 'info-photo-wrap hidden';
+  infoPhotoBtn.dataset.infoPhotoBtn = 'true';
+  infoPhotoBtn.innerHTML = `<img class="info-photo-img" alt="" /><span class="info-photo-caption">Wikimedia · Perbesar</span>`;
+  const infoPhotoImg = infoPhotoBtn.querySelector('.info-photo-img');
+  const infoPhotoCaption = infoPhotoBtn.querySelector('.info-photo-caption');
+
   const infoTitle = document.createElement('h2');
   infoTitle.className = 'info-title';
   const infoBody = document.createElement('p');
   infoBody.className = 'info-summary';
   const infoNote = document.createElement('p');
   infoNote.className = 'info-note';
+
+  const infoActionRow = document.createElement('div');
+  infoActionRow.className = 'info-action-row';
+
+  const infoSpeakBtn = document.createElement('button');
+  infoSpeakBtn.type = 'button';
+  infoSpeakBtn.className = 'info-speak-btn';
+  infoSpeakBtn.dataset.speakBtn = 'true';
+  infoSpeakBtn.textContent = '🔊 Bacakan';
+
   const infoGmaps = document.createElement('a');
   infoGmaps.className = 'info-gmaps-link hidden';
   infoGmaps.target = '_blank';
   infoGmaps.rel = 'noopener noreferrer';
   infoGmaps.textContent = 'Buka di Google Maps ↗';
-  infoCard.append(infoHeader, infoTitle, infoBody, infoNote, infoGmaps);
+
+  infoActionRow.append(infoSpeakBtn, infoGmaps);
+  infoCard.append(infoHeader, infoPhotoBtn, infoTitle, infoBody, infoNote, infoActionRow);
 
   // Bottom Preset Dock
   const presetNav = document.createElement('nav');
@@ -448,6 +473,68 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
 
   let exploreDrawer;
   let radar;
+
+  const lightbox = createPhotoLightbox({ i18n });
+  infoPhotoBtn.addEventListener('click', () => {
+    if (currentPhotoData) {
+      lightbox.open(currentPhotoData, infoTitle.textContent);
+    }
+  });
+  infoPhotoImg.addEventListener('error', () => {
+    infoPhotoBtn.classList.add('hidden');
+  });
+
+  function syncSpeakButton(st) {
+    const en = i18n.getLang() === 'en';
+    infoSpeakBtn.classList.toggle('active', Boolean(st?.speaking));
+    infoSpeakBtn.textContent = st?.speaking
+      ? (en ? '⏹ Stop' : '⏹ Berhenti')
+      : (en ? '🔊 Listen' : '🔊 Bacakan');
+  }
+
+  const audioGuide = createAudioGuide({
+    onStateChange(st) {
+      syncSpeakButton(st);
+      if (cameraModes?.getState?.().mode === 'tour') {
+        exploreDrawer?.syncModeBanner(cameraModes.getState(), playableBoat.getState());
+      }
+    },
+  });
+
+  infoSpeakBtn.addEventListener('click', () => {
+    if (audioGuide.getState().speaking) {
+      audioGuide.stop();
+      return;
+    }
+    const item = i18n.localizePoi(activePoiItem);
+    const script = `${item.title}. ${item.summary}`;
+    audioGuide.speak(script, { lang: i18n.getLang(), id: item.id });
+  });
+
+  const timeline = createHistoricalTimeline({
+    i18n,
+    mapContainer,
+    onSelectEra(eraItem) {
+      cameraModes.stopAll();
+      playableBoat.stop();
+      rootEl.dataset.timeline = 'true';
+      syncInfoCard(eraItem, { expand: true });
+      isFlying = true;
+      map.flyTo({
+        center: eraItem.center,
+        zoom: eraItem.zoom,
+        pitch: eraItem.pitch,
+        bearing: eraItem.bearing,
+        duration: 1350,
+        essential: true,
+      });
+    },
+    onExit() {
+      rootEl.dataset.timeline = 'false';
+      audioGuide.stop();
+      syncPresetUi('overview');
+    },
+  });
 
   const weatherGis = createWeatherGisEngine({
     map,
@@ -721,6 +808,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     routePlanner,
     passport,
     ambience,
+    audioGuide,
     weatherGis,
     onSelectPoi(poi) {
       selectPoi(poi);
@@ -768,6 +856,9 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     onOpenHelp() {
       onboardingHelp.setHelpOpen(true);
     },
+    onStartTimeline() {
+      timeline.start(0);
+    },
     onSetHour(h) {
       stopTimelapse();
       setHourOfDay(h);
@@ -810,8 +901,10 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     hint.textContent = i18n.t('hint');
     infoGmaps.textContent = i18n.t('openGmaps');
     syncInfoCard(activePoiItem, { expand: infoExpanded });
+    syncSpeakButton(audioGuide.getState());
     exploreDrawer.applyLanguage();
     onboardingHelp.applyLanguage();
+    timeline.applyLanguage();
   }
   langBtn.addEventListener('click', () => {
     i18n.toggle();
@@ -830,10 +923,12 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     exploreDrawer.toastEl,
     infoCard,
     radar.el,
+    timeline.barEl,
     presetNav,
     hint,
     onboardingHelp.onboardEl,
-    onboardingHelp.helpEl
+    onboardingHelp.helpEl,
+    lightbox.el
   );
   rootEl.appendChild(hud);
 
@@ -892,6 +987,22 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     } else {
       infoGmaps.classList.add('hidden');
     }
+
+    // Async Wikimedia photo fetch (in-memory cached, graceful hide if unavailable)
+    const seq = ++photoFetchSeq;
+    currentPhotoData = null;
+    infoPhotoBtn.classList.add('hidden');
+    if (item.id && item.id !== 'overview') {
+      fetchWikimediaPhoto(item.id).then((photo) => {
+        if (seq !== photoFetchSeq || !photo?.thumbUrl) return;
+        currentPhotoData = photo;
+        infoPhotoImg.src = photo.thumbUrl;
+        infoPhotoImg.alt = item.title;
+        infoPhotoCaption.textContent =
+          i18n.getLang() === 'en' ? 'Wikimedia · Click to enlarge' : 'Wikimedia · Klik perbesar';
+        infoPhotoBtn.classList.remove('hidden');
+      });
+    }
   }
 
   function syncPresetUi(presetId) {
@@ -937,9 +1048,16 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
     if (!opts.fromTour && cameraModes.getState().mode !== 'free') {
       cameraModes.stopAll();
     }
+    if (timeline.getState().active) {
+      timeline.stop();
+    }
     syncPresetUi(p.id);
     if (p.id !== 'overview') {
       stampPassport(p.id, p.label);
+    }
+    if (opts.fromTour && audioGuide.getState().autoTourNarration) {
+      const loc = i18n.localizePoi(p);
+      audioGuide.speak(`${loc.title}. ${loc.summary}`, { lang: i18n.getLang(), id: p.id });
     }
     isFlying = true;
     map.flyTo({
@@ -1091,6 +1209,10 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       quality: graphicsQuality,
       onboardingOpen: onboardingHelp.isOnboardingOpen(),
       helpOpen: onboardingHelp.isHelpOpen(),
+      audioGuide: audioGuide.getState(),
+      timeline: timeline.getState(),
+      currentPhoto: currentPhotoData ? Object.freeze({ title: currentPhotoData.title, thumbUrl: currentPhotoData.thumbUrl }) : null,
+      lightboxOpen: lightbox.isOpen(),
       lastShareUrl,
       drawerOpen: exploreDrawer.isOpen(),
       cameraMode: cameraModes.getState().mode,
@@ -1115,6 +1237,9 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
 
   return function cleanup() {
     stopTimelapse();
+    audioGuide.cleanup();
+    timeline.cleanup();
+    lightbox.cleanup();
     onboardingHelp.cleanup();
     cameraModes.cleanup();
     playableBoat.cleanup();

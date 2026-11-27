@@ -15,6 +15,7 @@ export function createExploreDrawer({
   routePlanner,
   passport,
   ambience,
+  audioGuide,
   weatherGis,
   onSelectPoi,
   onCategoryChange,
@@ -27,6 +28,7 @@ export function createExploreDrawer({
   onToggleLang,
   onShare,
   onOpenHelp,
+  onStartTimeline,
   onSetHour,
   onToggleTimelapse,
   onSetFestival,
@@ -617,15 +619,25 @@ export function createExploreDrawer({
       </button>
     </div>
 
-    <p class="drawer-section-label" data-sec-photo>Photo Mode (Kartu Pos 3D)</p>
-    <button type="button" class="action-card" data-photo-enter="true">
-      <span class="action-icon" aria-hidden="true">📸</span>
-      <span class="action-copy">
-        <strong data-photo-title>Masuk Photo Mode</strong>
-        <small data-photo-desc>Sembunyikan HUD &amp; unduh kartu pos PNG resolusi penuh</small>
-      </span>
-      <span class="action-pill">Buka</span>
-    </button>
+    <p class="drawer-section-label" data-sec-photo>Photo Mode &amp; Linimasa Sejarah</p>
+    <div class="action-stack">
+      <button type="button" class="action-card" data-timeline-open="true">
+        <span class="action-icon" aria-hidden="true">📜</span>
+        <span class="action-copy">
+          <strong data-tl-card-title>Timeline Sejarah Palembang (5 Era)</strong>
+          <small data-tl-card-desc>683 M Sriwijaya → 1780 Kesultanan → 1928 → 1965 Ampera → LRT</small>
+        </span>
+        <span class="action-pill" data-tl-pill>Mulai</span>
+      </button>
+      <button type="button" class="action-card" data-photo-enter="true">
+        <span class="action-icon" aria-hidden="true">📸</span>
+        <span class="action-copy">
+          <strong data-photo-title>Masuk Photo Mode</strong>
+          <small data-photo-desc>Sembunyikan HUD &amp; unduh kartu pos PNG resolusi penuh</small>
+        </span>
+        <span class="action-pill">Buka</span>
+      </button>
+    </div>
   `;
 
   const secClockEl = festPanel.querySelector('[data-sec-clock]');
@@ -636,12 +648,17 @@ export function createExploreDrawer({
   const timelapseBtn = festPanel.querySelector('[data-timelapse-btn]');
   const bidarBtn = festPanel.querySelector('[data-festival-btn="bidar"]');
   const fwBtn = festPanel.querySelector('[data-festival-btn="fireworks"]');
+  const timelineOpenBtn = festPanel.querySelector('[data-timeline-open]');
   const photoEnterBtn = festPanel.querySelector('[data-photo-enter]');
 
   hourSlider.addEventListener('input', () => onSetHour(Number(hourSlider.value)));
   timelapseBtn.addEventListener('click', () => onToggleTimelapse());
   bidarBtn.addEventListener('click', () => onSetFestival(festival3d.getMode() === 'bidar' ? 'none' : 'bidar'));
   fwBtn.addEventListener('click', () => onSetFestival(festival3d.getMode() === 'fireworks' ? 'none' : 'fireworks'));
+  timelineOpenBtn.addEventListener('click', () => {
+    setOpen(false);
+    onStartTimeline?.();
+  });
   photoEnterBtn.addEventListener('click', () => onEnterPhotoMode());
 
   tabPanels.set('festival', festPanel);
@@ -792,19 +809,31 @@ export function createExploreDrawer({
     bannerActions.innerHTML = '';
 
     if (camState.mode === 'tour') {
+      const en = i18n.getLang() === 'en';
+      const narrOn = Boolean(audioGuide?.getState?.().autoTourNarration);
+      const narrBtn = document.createElement('button');
+      narrBtn.type = 'button';
+      narrBtn.className = `banner-btn${narrOn ? ' active' : ''}`;
+      narrBtn.dataset.tourNarrationBtn = 'true';
+      narrBtn.textContent = en ? `🔊 Voice: ${narrOn ? 'ON' : 'OFF'}` : `🔊 Narasi: ${narrOn ? 'ON' : 'OFF'}`;
+      narrBtn.addEventListener('click', () => {
+        audioGuide?.toggleAutoTourNarration?.();
+        syncModeBanner(cameraModes.getState(), playableBoat.getState());
+      });
+
       const pauseBtn = document.createElement('button');
       pauseBtn.type = 'button';
       pauseBtn.className = 'banner-btn';
-      pauseBtn.textContent = camState.tourPaused ? 'Lanjut' : 'Jeda';
+      pauseBtn.textContent = camState.tourPaused ? (en ? 'Resume' : 'Lanjut') : (en ? 'Pause' : 'Jeda');
       pauseBtn.addEventListener('click', () => cameraModes.toggleTourPause());
 
       const nextBtn = document.createElement('button');
       nextBtn.type = 'button';
       nextBtn.className = 'banner-btn';
-      nextBtn.textContent = 'Berikutnya';
+      nextBtn.textContent = en ? 'Next' : 'Berikutnya';
       nextBtn.addEventListener('click', () => cameraModes.nextTourStop());
 
-      bannerActions.append(pauseBtn, nextBtn);
+      bannerActions.append(narrBtn, pauseBtn, nextBtn);
     } else if (camState.mode === 'drone') {
       const pad = document.createElement('div');
       pad.className = 'drone-pad';
@@ -1019,6 +1048,13 @@ export function createExploreDrawer({
     qualityLabelEl.textContent = en ? 'Graphics' : 'Grafis';
     qHighBtn.textContent = en ? 'High' : 'Tinggi';
     qEcoBtn.textContent = en ? 'Eco' : 'Hemat';
+    festPanel.querySelector('[data-tl-card-title]').textContent = en
+      ? 'Palembang Historical Timeline (5 Eras)'
+      : 'Timeline Sejarah Palembang (5 Era)';
+    festPanel.querySelector('[data-tl-card-desc]').textContent = en
+      ? '683 CE Srivijaya → 1780 Sultanate → 1928 → 1965 Ampera → LRT'
+      : '683 M Sriwijaya → 1780 Kesultanan → 1928 → 1965 Ampera → LRT';
+    festPanel.querySelector('[data-tl-pill]').textContent = t('start');
   }
 
   setTab('ride');
