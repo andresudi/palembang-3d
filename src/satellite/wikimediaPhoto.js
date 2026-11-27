@@ -14,54 +14,34 @@ const WIKI_SLUGS = {
     ['id', 'Monumen_Perjuangan_Rakyat_(Palembang)'],
     ['en', 'Palembang'],
   ],
-  'pasar-16': [
-    ['id', 'Sungai_Musi'],
-    ['en', 'Musi_River_(Indonesia)'],
-  ],
+  'pasar-16': [],
   'kuto-besak': [
     ['id', 'Benteng_Kuto_Besak'],
     ['en', 'Kuto_Besak'],
   ],
   'walikota-kambang': [
     ['id', 'Kantor_Wali_Kota_Palembang'],
-    ['en', 'Palembang'],
   ],
-  'kampung-kapitan': [
-    ['id', 'Sungai_Musi'],
-    ['en', 'Musi_River_(Indonesia)'],
-  ],
+  'kampung-kapitan': [],
   jakabaring: [
     ['en', 'Gelora_Sriwijaya_Stadium'],
     ['id', 'Stadion_Gelora_Sriwijaya'],
   ],
-  'musi-iv': [
-    ['id', 'Sungai_Musi'],
-    ['en', 'Musi_River_(Indonesia)'],
-  ],
+  'musi-iv': [],
   'pulau-kemaro': [
     ['id', 'Pulau_Kemaro'],
     ['en', 'Kemaro_Island'],
   ],
   'tugu-belido': [
     ['id', 'Benteng_Kuto_Besak'],
-    ['id', 'Sungai_Musi'],
   ],
-  'kambang-iwak': [
-    ['id', 'Palembang'],
-    ['en', 'Palembang'],
-  ],
+  'kambang-iwak': [],
   'danau-dayung': [
     ['id', 'Jakabaring_Sport_City'],
     ['en', 'Gelora_Sriwijaya_Stadium'],
   ],
-  'musi-vi': [
-    ['id', 'Sungai_Musi'],
-    ['en', 'Musi_River_(Indonesia)'],
-  ],
-  'masjid-cheng-ho': [
-    ['id', 'Masjid_Agung_Palembang'],
-    ['en', 'Palembang'],
-  ],
+  'musi-vi': [],
+  'masjid-cheng-ho': [],
   'bukit-siguntang': [
     ['id', 'Bukit_Siguntang'],
     ['en', 'Bukit_Seguntang'],

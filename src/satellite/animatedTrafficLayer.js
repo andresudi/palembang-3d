@@ -210,6 +210,8 @@ function queryBridgeDeck(bridges, x, z, dirX, dirZ) {
       const alongBridge = dirX * b.fwdX + dirZ * b.fwdZ;
       return {
         onBridge: true,
+        bridgeId: b.id,
+        localZ,
         y: b.baseElev + deckY,
         slope: dYdLocalZ * alongBridge,
       };
@@ -481,7 +483,7 @@ function buildLrtViaductMesh(lrtPoly, mats) {
   return { group, updateElevations };
 }
 
-export function createAnimatedTrafficLayer() {
+export function createAnimatedTrafficLayer({ getAmperaLiftMeters } = {}) {
   const rand = mulberry32(20260717);
   const anchor = maplibregl.MercatorCoordinate.fromLngLat(ANCHOR_LNGLAT, 0);
   const meterScale = anchor.meterInMercatorCoordinateUnits();
@@ -1033,16 +1035,29 @@ export function createAnimatedTrafficLayer() {
     let recycledThisFrame = 0;
 
     // 1) Update Road Vehicles
+    const amperaLifted = (getAmperaLiftMeters?.() || 0) > 0.5;
     for (let i = 0; i < TOTAL_VEHICLES; i++) {
       const v = vehicles[i];
       let x, y, z, fx, fz, slope = 0;
+      let hiddenInLiftGap = false;
 
       if (v.kind === 'bridge') {
         const b = bridges[v.bridgeIdx];
         const maxZ = b.spanHalf + b.rampLen - 6;
-        v.localZ += v.dir * v.speed * dt;
-        if (v.localZ > maxZ) v.localZ = -maxZ;
-        if (v.localZ < -maxZ) v.localZ = maxZ;
+        const nextLocalZ = v.localZ + v.dir * v.speed * dt;
+        const stopAtGate =
+          amperaLifted &&
+          b.id === 'ampera' &&
+          Math.abs(v.localZ) >= 44 &&
+          Math.abs(nextLocalZ) < 46;
+        if (!stopAtGate) {
+          v.localZ = nextLocalZ;
+          if (v.localZ > maxZ) v.localZ = -maxZ;
+          if (v.localZ < -maxZ) v.localZ = maxZ;
+        }
+        if (amperaLifted && b.id === 'ampera' && Math.abs(v.localZ) < 43) {
+          hiddenInLiftGap = true;
+        }
 
         x = b.cx + b.rightX * v.localX + b.fwdX * v.localZ;
         z = b.cz + b.rightZ * v.localX + b.fwdZ * v.localZ;
@@ -1094,6 +1109,9 @@ export function createAnimatedTrafficLayer() {
 
         const bridgeHit = queryBridgeDeck(bridges, x, z, fx, fz);
         if (bridgeHit) {
+          if (amperaLifted && bridgeHit.bridgeId === 'ampera' && Math.abs(bridgeHit.localZ) < 46) {
+            hiddenInLiftGap = true;
+          }
           y = bridgeHit.y;
           slope = bridgeHit.slope;
         } else {
@@ -1107,6 +1125,19 @@ export function createAnimatedTrafficLayer() {
           }
           y = s.nodeA.elev * (1 - s.t) + s.nodeB.elev * s.t + 0.25;
         }
+      }
+
+      if (hiddenInLiftGap) {
+        dummy.position.set(0, -500, 0);
+        dummy.scale.set(0.001, 0.001, 0.001);
+        dummy.updateMatrix();
+        carBodyInst.setMatrixAt(i, dummy.matrix);
+        carCabinInst.setMatrixAt(i, dummy.matrix);
+        carHeadInst.setMatrixAt(i, dummy.matrix);
+        carTailInst.setMatrixAt(i, dummy.matrix);
+        carHeadGlowInst.setMatrixAt(i, dummy.matrix);
+        carTailGlowInst.setMatrixAt(i, dummy.matrix);
+        continue;
       }
 
       const yaw = Math.atan2(fx, fz);

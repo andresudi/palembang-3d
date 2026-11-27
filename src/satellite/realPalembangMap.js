@@ -78,10 +78,10 @@ const LIGHTING_THEMES = {
       'fog-color': '#101c2e',
       'fog-ground-blend': 0.55,
     },
-    light: { anchor: 'viewport', color: '#ffd9a8', intensity: 0.36, position: [1.2, 110, 45] },
-    satBrightnessMax: 0.38,
-    satSaturation: -0.22,
-    satContrast: 0.22,
+    light: { anchor: 'viewport', color: '#ffd9a8', intensity: 0.42, position: [1.2, 110, 45] },
+    satBrightnessMax: 0.48,
+    satSaturation: -0.14,
+    satContrast: 0.18,
     bldgColor: [
       'interpolate',
       ['linear'],
@@ -93,6 +93,32 @@ const LIGHTING_THEMES = {
     ],
     bldgOpacity: 0.88,
   },
+};
+
+function rectRing(lng, lat, halfW, halfH) {
+  return [
+    [
+      [lng - halfW, lat - halfH],
+      [lng + halfW, lat - halfH],
+      [lng + halfW, lat + halfH],
+      [lng - halfW, lat + halfH],
+      [lng - halfW, lat - halfH],
+    ],
+  ];
+}
+
+// Tight exclusion boxes over isolated hero footprints (avoiding adjacent merged shophouse blocks)
+// so flat grey OSM extrusions never poke through Ampera's twin towers, Masjid Agung, Monpera, etc.
+const HERO_OSM_EXCLUSION = {
+  type: 'MultiPolygon',
+  coordinates: [
+    rectRing(104.76340, -2.99194, 0.00042, 0.00042), // Jembatan Ampera twin river towers only
+    rectRing(104.76008, -2.98778, 0.00034, 0.00030), // Masjid Agung SMB I & minaret (inside park)
+    rectRing(104.76065, -2.98968, 0.00018, 0.00018), // Monpera 5-petal monument (inside park)
+    rectRing(104.78071, -3.02422, 0.00024, 0.00024), // Masjid Muhammad Cheng Ho Jakabaring
+    rectRing(104.81312, -2.98038, 0.00018, 0.00018), // Pagoda 9 Lantai Pulau Kemaro
+    rectRing(104.72555, -2.99722, 0.00026, 0.00026), // Pendopo Bukit Siguntang
+  ],
 };
 
 function buildSatelliteStyle() {
@@ -146,6 +172,7 @@ function buildSatelliteStyle() {
         source: 'openfreemap',
         'source-layer': 'building',
         minzoom: 13.5,
+        filter: ['>', ['distance', HERO_OSM_EXCLUSION], 0],
         paint: {
           'fill-extrusion-color': LIGHTING_THEMES.siang.bldgColor,
           'fill-extrusion-height': [
@@ -248,6 +275,13 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
       canvasContextAttributes: { preserveDrawingBuffer: true, antialias: true },
     });
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+    if ((rootEl.clientWidth || window.innerWidth) <= 720) {
+      // MapLibre expands compact attribution by default on initial load; collapse to clean 'i' pill on phones
+      requestAnimationFrame(() => {
+        const attr = mapContainer.querySelector('.maplibregl-ctrl-attrib');
+        if (attr) attr.classList.remove('maplibregl-compact-show');
+      });
+    }
   } catch (err) {
     console.warn('MapLibre WebGL initialization failed:', err?.message || err);
     showWebGLFallback(err?.message || err);
@@ -289,7 +323,9 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
 
   const i18n = createI18n();
   const hero3d = createHeroLandmarksCustomLayer();
-  const traffic3d = createAnimatedTrafficLayer();
+  const traffic3d = createAnimatedTrafficLayer({
+    getAmperaLiftMeters: () => hero3d.getAmperaLiftState().liftMeters,
+  });
   const passport = createPassportStore();
   const ambience = createAmbienceAudio();
   const festival3d = createFestivalLayer({ ambience });
@@ -1307,6 +1343,7 @@ export function mountRealPalembangMap({ rootEl, onSwitchMode, showWebGLFallback 
 
   return function cleanup() {
     stopTimelapse();
+    exploreDrawer.cleanup?.();
     timeline.cleanup();
     lightbox.cleanup();
     onboardingHelp.cleanup();

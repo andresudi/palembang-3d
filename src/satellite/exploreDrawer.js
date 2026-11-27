@@ -472,7 +472,7 @@ export function createExploreDrawer({
   audioCard.innerHTML = `
     <div class="audio-head">
       <div class="audio-copy">
-        <strong>Ambience Sungai Musi</strong>
+        <strong data-audio-title>Ambience Sungai Musi</strong>
         <small data-audio-status>Nonaktif · Air sungai &amp; klakson kapal</small>
       </div>
       <button type="button" class="toggle-btn audio-btn" data-drawer-audio-btn>Putar</button>
@@ -483,6 +483,7 @@ export function createExploreDrawer({
       <button type="button" class="horn-btn" data-horn-btn>Klakson</button>
     </div>
   `;
+  const audioTitleEl = audioCard.querySelector('[data-audio-title]');
   const audioStatusEl = audioCard.querySelector('[data-audio-status]');
   const drawerAudioBtn = audioCard.querySelector('[data-drawer-audio-btn]');
   const audioVolSlider = audioCard.querySelector('[data-audio-volume]');
@@ -501,7 +502,7 @@ export function createExploreDrawer({
   const gisPanel = document.createElement('div');
   gisPanel.className = 'drawer-panel';
   gisPanel.innerHTML = `
-    <p class="drawer-section-label">Cuaca Palembang (Open-Meteo · Gratis)</p>
+    <p class="drawer-section-label" data-gis-weather-sec>Cuaca Palembang (Open-Meteo · Gratis)</p>
     <div class="gis-card">
       <div class="weather-live-head">
         <div class="weather-live-copy">
@@ -517,10 +518,10 @@ export function createExploreDrawer({
       </div>
     </div>
 
-    <p class="drawer-section-label">Simulasi Pasang Sungai Musi</p>
+    <p class="drawer-section-label" data-gis-tide-sec>Simulasi Pasang Sungai Musi</p>
     <div class="gis-card">
       <div class="tide-head">
-        <strong>Kenaikan Muka Air</strong>
+        <strong data-tide-heading>Kenaikan Muka Air</strong>
         <div class="tide-right">
           <span class="tide-val" data-tide-val>+0.0 m</span>
           <button type="button" class="passport-reset" data-tide-reset>Normal</button>
@@ -530,7 +531,7 @@ export function createExploreDrawer({
       <p class="tide-status level-normal" data-tide-status>Normal · Muka air standar Sungai Musi</p>
     </div>
 
-    <p class="drawer-section-label">Alat Ukur Jarak (2 Titik)</p>
+    <p class="drawer-section-label" data-gis-measure-sec>Alat Ukur Jarak (2 Titik)</p>
     <div class="gis-card">
       <div class="measure-top">
         <button type="button" class="toggle-btn measure-toggle" data-measure-toggle>Mulai Ukur (Klik Peta)</button>
@@ -818,7 +819,7 @@ export function createExploreDrawer({
     applyJoystickDelta(clientX, clientY);
   }
 
-  // Pointer Events (desktop + modern mobile)
+  // Pointer Events (desktop + modern mobile) with clean removable listeners
   joyBase.addEventListener('pointerdown', (e) => {
     if (joyTouchId !== null) return;
     e.preventDefault();
@@ -829,16 +830,16 @@ export function createExploreDrawer({
     } catch {}
     beginJoyAt(e.clientX, e.clientY);
   });
-  window.addEventListener('pointermove', (e) => {
+  const onWinPointerMove = (e) => {
     if (!joyActive || joyPointerId === null || e.pointerId !== joyPointerId) return;
     applyJoystickDelta(e.clientX, e.clientY);
-  });
-  window.addEventListener('pointerup', (e) => {
+  };
+  const onWinPointerEnd = (e) => {
     if (joyPointerId !== null && e.pointerId === joyPointerId) resetJoystick();
-  });
-  window.addEventListener('pointercancel', (e) => {
-    if (joyPointerId !== null && e.pointerId === joyPointerId) resetJoystick();
-  });
+  };
+  window.addEventListener('pointermove', onWinPointerMove);
+  window.addEventListener('pointerup', onWinPointerEnd);
+  window.addEventListener('pointercancel', onWinPointerEnd);
 
   // Native Touch Events (rock-solid fallback for iOS Safari & Android Chrome)
   joyBase.addEventListener(
@@ -1038,22 +1039,27 @@ export function createExploreDrawer({
   }
 
   function syncWeather(state) {
+    const en = i18n.getLang() === 'en';
     for (const btn of weatherModeBtns) {
       btn.classList.toggle('active', btn.dataset.weatherBtn === state.mode);
     }
-    const modeLabels = { cerah: '☀️ Cerah', berawan: '⛅ Berawan', hujan: '🌧️ Hujan Tropis 3D' };
+    const modeLabels = en
+      ? { cerah: '☀️ Clear', berawan: '⛅ Cloudy', hujan: '🌧️ Tropical 3D Rain' }
+      : { cerah: '☀️ Cerah', berawan: '⛅ Berawan', hujan: '🌧️ Hujan Tropis 3D' };
     if (state.source === 'live' && state.live) {
       weatherTitleEl.textContent = `${state.live.icon} ${state.live.label} · ${state.live.tempC}°C`;
-      weatherMetaEl.textContent = `Live Palembang · Lembap ${state.live.humidity}% · Angin ${state.live.windKmh} km/j`;
+      weatherMetaEl.textContent = en
+        ? `Live Palembang · Humidity ${state.live.humidity}% · Wind ${state.live.windKmh} km/h`
+        : `Live Palembang · Lembap ${state.live.humidity}% · Angin ${state.live.windKmh} km/j`;
     } else if (state.error) {
-      weatherTitleEl.textContent = modeLabels[state.mode] || '☀️ Cerah';
-      weatherMetaEl.textContent = `Mode simulasi (${state.error})`;
+      weatherTitleEl.textContent = modeLabels[state.mode] || modeLabels.cerah;
+      weatherMetaEl.textContent = en ? `Simulation mode (${state.error})` : `Mode simulasi (${state.error})`;
     } else {
-      weatherTitleEl.textContent = `${modeLabels[state.mode] || '☀️ Cerah'} (Simulasi)`;
+      weatherTitleEl.textContent = `${modeLabels[state.mode] || modeLabels.cerah} (${en ? 'Simulation' : 'Simulasi'})`;
       weatherMetaEl.textContent =
         state.mode === 'hujan'
-          ? 'Partikel hujan 3D & suara hujan aktif'
-          : 'Klik Sync Live untuk cuaca aktual Palembang';
+          ? (en ? '3D rain particles & rain ambience active' : 'Partikel hujan 3D & suara hujan aktif')
+          : (en ? 'Click Sync Live for real-time Palembang weather' : 'Klik Sync Live untuk cuaca aktual Palembang');
     }
   }
 
@@ -1065,11 +1071,14 @@ export function createExploreDrawer({
   }
 
   function syncMeasure(state) {
+    const en = i18n.getLang() === 'en';
     measureToggleBtn.classList.toggle('active', state.active);
-    measureToggleBtn.textContent = state.active ? 'Mode Ukur Aktif' : 'Mulai Ukur (Klik Peta)';
+    measureToggleBtn.textContent = state.active
+      ? (en ? 'Measuring Active' : 'Mode Ukur Aktif')
+      : (en ? 'Start Measure (Click Map)' : 'Mulai Ukur (Klik Peta)');
     if (state.formatted && state.eta) {
       measureResultEl.innerHTML = `
-        <div class="measure-dist">Jarak Garis Lurus: <strong>${state.formatted}</strong></div>
+        <div class="measure-dist">${en ? 'Direct Distance' : 'Jarak Garis Lurus'}: <strong>${state.formatted}</strong></div>
         <div class="measure-eta-grid">
           <span>🚶 ${state.eta.walk}</span>
           <span>🚗 ${state.eta.car}</span>
@@ -1078,11 +1087,11 @@ export function createExploreDrawer({
         </div>
       `;
     } else if (state.active && state.hasA) {
-      measureResultEl.innerHTML = `<small>Titik A ditetapkan — klik Titik B di peta 3D.</small>`;
+      measureResultEl.innerHTML = `<small>${en ? 'Point A set — click Point B on the 3D map.' : 'Titik A ditetapkan — klik Titik B di peta 3D.'}</small>`;
     } else if (state.active) {
-      measureResultEl.innerHTML = `<small>Klik Titik A di mana saja pada peta 3D.</small>`;
+      measureResultEl.innerHTML = `<small>${en ? 'Click Point A anywhere on the 3D map.' : 'Klik Titik A di mana saja pada peta 3D.'}</small>`;
     } else {
-      measureResultEl.innerHTML = `<small>Aktifkan lalu klik Titik A &amp; Titik B di peta 3D.</small>`;
+      measureResultEl.innerHTML = `<small>${en ? 'Activate then click Point A & Point B on the 3D map.' : 'Aktifkan lalu klik Titik A &amp; Titik B di peta 3D.'}</small>`;
     }
   }
 
@@ -1126,11 +1135,12 @@ export function createExploreDrawer({
   }
 
   function syncAudio(isOn) {
+    const en = i18n.getLang() === 'en';
     drawerAudioBtn.classList.toggle('active', isOn);
-    drawerAudioBtn.textContent = isOn ? t('active') : 'Putar';
+    drawerAudioBtn.textContent = isOn ? t('active') : (en ? 'Play' : 'Putar');
     audioStatusEl.textContent = isOn
-      ? 'Aktif · Riak Sungai Musi & kapal'
-      : 'Nonaktif · Air sungai & klakson kapal';
+      ? (en ? 'Active · Musi River waves & riverboats' : 'Aktif · Riak Sungai Musi & kapal')
+      : (en ? 'Off · River ambience & boat horns' : 'Nonaktif · Air sungai & klakson kapal');
   }
 
   function applyLanguage() {
@@ -1227,6 +1237,29 @@ export function createExploreDrawer({
       ? '683 CE Srivijaya → 1780 Sultanate → 1928 → 1965 Ampera → LRT'
       : '683 M Sriwijaya → 1780 Kesultanan → 1928 → 1965 Ampera → LRT';
     festPanel.querySelector('[data-tl-pill]').textContent = t('start');
+
+    // Localize Ambience, Boat Touch Controls, and GIS Tab 3 (ID <-> EN)
+    audioTitleEl.textContent = en ? 'Musi River Ambience' : 'Ambience Sungai Musi';
+    hornBtn.textContent = en ? 'Horn' : 'Klakson';
+    boatHornBtn.querySelector('small').textContent = en ? 'Horn' : 'Klakson';
+    syncAudio(ambience.isEnabled());
+
+    gisPanel.querySelector('[data-gis-weather-sec]').textContent = en
+      ? 'Palembang Weather (Open-Meteo · Free)'
+      : 'Cuaca Palembang (Open-Meteo · Gratis)';
+    gisPanel.querySelector('[data-weather-btn="cerah"]').textContent = en ? 'Clear' : 'Cerah';
+    gisPanel.querySelector('[data-weather-btn="berawan"]').textContent = en ? 'Cloudy' : 'Berawan';
+    gisPanel.querySelector('[data-weather-btn="hujan"]').textContent = en ? '3D Rain' : 'Hujan 3D';
+    gisPanel.querySelector('[data-gis-tide-sec]').textContent = en
+      ? 'Musi River Tide Simulation'
+      : 'Simulasi Pasang Sungai Musi';
+    gisPanel.querySelector('[data-tide-heading]').textContent = en ? 'Water Level Rise' : 'Kenaikan Muka Air';
+    gisPanel.querySelector('[data-gis-measure-sec]').textContent = en
+      ? 'Distance Measure Tool (2 Points)'
+      : 'Alat Ukur Jarak (2 Titik)';
+    measureClearBtn.textContent = en ? 'Clear' : 'Hapus';
+    syncWeather(weatherGis.getWeatherState());
+    syncMeasure(weatherGis.getMeasureState());
   }
 
   setTab('ride');
@@ -1259,5 +1292,11 @@ export function createExploreDrawer({
     syncPhotoMode,
     applyLanguage: applyLanguageWithV25,
     showToast,
+    cleanup() {
+      clearTimeout(toastTimer);
+      window.removeEventListener('pointermove', onWinPointerMove);
+      window.removeEventListener('pointerup', onWinPointerEnd);
+      window.removeEventListener('pointercancel', onWinPointerEnd);
+    },
   };
 }
